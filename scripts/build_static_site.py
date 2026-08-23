@@ -51,18 +51,109 @@ SERIES_KEYWORDS = ["All", "D23", "MOG", "WDI", "Anniversary", "Cast Exclusive", 
 total = len(pins)
 
 
-def opts(values):
-    return "".join(f'<option value="{v}">{v}</option>' for v in values)
+PARK_LABELS_JA = {
+    "All": "すべて", "D23 Expo": "D23 Expo", "Walt Disney World": "ウォルト・ディズニー・ワールド",
+    "Disneyland Resort": "ディズニーランド・リゾート", "Disney Parks (Shared/Unspecified)": "ディズニーパークス(共通)",
+    "Disney Store / Online Exclusive": "ディズニーストア/オンライン限定", "Tokyo Disneyland": "東京ディズニーランド",
+    "Disneyland Paris": "ディズニーランド・パリ", "Hong Kong Disneyland": "香港ディズニーランド",
+    "Shanghai Disneyland": "上海ディズニーランド", "Convention Exclusive (SDCC等)": "コンベンション限定(SDCC等)",
+    "Other / Unknown": "その他/不明",
+}
+COLLECTION_LABELS_JA = {
+    "All": "すべて", "Mickey & Friends": "ミッキー&フレンズ", "Princesses": "プリンセス",
+    "Star Wars": "スター・ウォーズ", "Marvel": "マーベル", "Pixar": "ピクサー", "Villains": "ヴィランズ",
+    "Attractions": "アトラクション", "Winnie the Pooh & Friends": "くまのプーさん&フレンズ",
+    "Alice in Wonderland": "ふしぎの国のアリス", "Muppets": "マペッツ", "Peter Pan / Neverland": "ピーター・パン/ネバーランド",
+    "Lilo & Stitch": "リロ&スティッチ", "The Lion King": "ライオン・キング",
+    "Nightmare Before Christmas": "ナイトメアー・ビフォア・クリスマス", "Aristocats": "おしゃれキャット",
+    "Dumbo": "ダンボ", "Hercules": "ヘラクレス", "Big Hero 6": "ベイマックス", "Zootopia": "ズートピア",
+    "Kingdom Hearts": "キングダム ハーツ", "Tarzan": "ターザン", "Classic Disney Animation": "クラシック作品",
+    "Modern Disney Animation": "近年の作品", "Other": "その他",
+}
+EDITION_LABELS_JA = {
+    "All": "すべて", "Limited Edition (LE)": "数量限定(LE)", "Limited Release (LR)": "期間限定(LR)",
+    "Open Edition (OE)": "通常販売(OE)", "Mystery / Chaser": "ミステリー/チェイサー",
+    "Cast Member Trading": "キャスト用トレーディング", "Unknown": "不明",
+}
+STATUS_LABELS_JA = {
+    "All": "すべて", "Official": "公式確認済み", "Likely Official": "公式の可能性が高い",
+    "Unverified": "未確認", "Fantasy Pin": "ファンタジーピン(非公式)", "Non-Tradeable": "トレード対象外",
+    "Unofficial": "非公式", "Not a Pin": "ピン以外の商品",
+}
+COLOR_LABELS_JA = {
+    "All": "すべて", "Red": "赤", "Pink": "ピンク", "Blue": "青", "Aqua": "水色", "Green": "緑",
+    "Yellow": "黄", "Orange": "オレンジ", "Purple": "紫", "Brown": "茶", "Black": "黒", "White": "白",
+    "Multi": "多色/その他",
+}
+SERIES_LABELS_JA = {
+    "All": "すべて", "D23": "D23", "MOG": "MOG", "WDI": "WDI", "Anniversary": "アニバーサリー",
+    "Cast Exclusive": "キャスト限定", "Hidden Mickey": "ハイドン・ミッキー", "Imagineering": "イマジニアリング",
+    "Annual Passholder": "年間パスポート限定", "Artist Series": "アーティストシリーズ", "Mystery": "ミステリー",
+    "Chaser": "チェイサー", "Jumbo": "ジャンボ", "Halloween": "ハロウィン", "Holiday": "ホリデー",
+    "Windows of Attraction": "Windows of Attraction", "Enchanted Doors": "Enchanted Doors",
+    "Magical Theater": "Magical Theater", "Digitize Disney": "Digitize Disney",
+    "Premier Collection": "プレミアコレクション", "Game Changers": "Game Changers",
+    "Play Along": "Play Along", "Character Carousel": "Character Carousel",
+    "Diamond Celebration": "ダイヤモンド・セレブレーション", "50th Anniversary": "50周年",
+    "60th Anniversary": "60周年",
+}
 
 
-park_options = opts(PARKS)
-collection_options = opts(COLLECTIONS)
-edition_options = opts(EDITION_TYPES)
-status_options = opts(STATUS_LEVELS)
-series_options = opts(SERIES_KEYWORDS)
-color_options = opts(COLOR_TAGS)
-character_options = '<option value="All">All</option>' + "".join(
-    f'<option value="{c}">{c}</option>' for c in TOP_CHARACTERS
+def opts(values, label_map=None):
+    label_map = label_map or {}
+    return "".join(
+        f'<option value="{v}">{label_map.get(v, v)}</option>' for v in values
+    )
+
+
+park_options = opts(PARKS, PARK_LABELS_JA)
+collection_options = opts(COLLECTIONS, COLLECTION_LABELS_JA)
+edition_options = opts(EDITION_TYPES, EDITION_LABELS_JA)
+status_options = opts(STATUS_LEVELS, STATUS_LABELS_JA)
+series_options = opts(SERIES_KEYWORDS, SERIES_LABELS_JA)
+color_options = opts(COLOR_TAGS, COLOR_LABELS_JA)
+CHARACTER_LABELS_JA = {
+    "Mickey Mouse": "ミッキーマウス", "Minnie Mouse": "ミニーマウス", "Donald Duck": "ドナルドダック",
+    "Daisy Duck": "デイジーダック", "Goofy": "グーフィー", "Pluto": "プルート", "Chip": "チップ",
+    "Dale": "デール", "Figaro": "フィガロ", "Duffy": "ダッフィー", "ShellieMay": "シェリーメイ",
+    "Gelatoni": "ジェラトーニ", "StellaLou": "ステラ・ルー", "CookieAnn": "クッキー・アン",
+    "LinaBell": "リーナ・ベル", "Olaf": "オラフ", "Anna": "アナ", "Elsa": "エルサ",
+    "Rapunzel": "ラプンツェル", "Belle": "ベル", "Beast": "野獣", "Aurora": "オーロラ姫",
+    "Jasmine": "ジャスミン", "Aladdin": "アラジン", "Genie": "ジーニー", "Ariel": "アリエル",
+    "Ursula": "アースラ", "Flounder": "フランダー", "Woody": "ウッディ", "Buzz Lightyear": "バズ・ライトイヤー",
+    "Jessie": "ジェシー", "Sulley": "サリー", "Mike Wazowski": "マイク・ワゾウスキー",
+    "Baymax": "ベイマックス", "Hiro Hamada": "ヒロ・ハマダ", "Stitch": "スティッチ", "Angel": "エンジェル",
+    "Scrump": "スクランプ", "Scar": "スカー", "Hades": "ハデス", "Maleficent": "マレフィセント",
+    "Cruella de Vil": "クルエラ・ド・ヴィル", "Captain Hook": "フック船長", "Peter Pan": "ピーター・パン",
+    "Wendy": "ウェンディ", "Tigger": "ティガー", "Eeyore": "イーヨー", "Piglet": "ピグレット",
+    "Snow White": "白雪姫", "Evil Queen": "女王", "Gaston": "ガストン", "Flynn Rider": "フリン・ライダー",
+    "Vanellope": "ヴァネロペ", "Judy Hopps": "ジュディ・ホップス", "Nick Wilde": "ニック・ワイルド",
+    "Groot": "グルート", "Grogu": "グローグー", "Darth Vader": "ダース・ベイダー",
+    "Simba": "シンバ", "Rafiki": "ラフィキ", "Timon": "ティモン", "Pumbaa": "プンバァ", "Nala": "ナラ",
+    "Mufasa": "ムファサ", "Jack Skellington": "ジャック・スケリントン", "Sally": "サリー(NBC)",
+    "Marie": "マリー", "Duchess": "ダッチェス", "Dumbo": "ダンボ", "Hercules": "ヘラクレス",
+    "Megara": "メグ", "Pinocchio": "ピノキオ", "Bambi": "バンビ", "Moana": "モアナ", "Maui": "マウイ",
+    "Tiana": "ティアナ", "Mulan": "ムーラン", "Mushu": "ムーシュー", "Mirabel": "ミラベル",
+    "Luca": "ルカ", "Remy": "レミー", "WALL-E": "ウォーリー", "EVE": "イヴ", "Nemo": "ニモ",
+    "Dory": "ドリー", "Merida": "メリダ", "Joy": "ヨロコビ", "Sadness": "カナシミ",
+    "Figment": "フィグメント", "Orange Bird": "オレンジバード", "Spider-Man": "スパイダーマン",
+    "Iron Man": "アイアンマン", "Captain America": "キャプテン・アメリカ", "Thor": "ソー",
+    "Hulk": "ハルク", "Black Widow": "ブラック・ウィドウ", "Loki": "ロキ", "Black Panther": "ブラックパンサー",
+    "Yoda": "ヨーダ", "Chewbacca": "チューバッカ", "Boba Fett": "ボバ・フェット",
+    "Stormtrooper": "ストームトルーパー", "The Mandalorian": "マンダロリアン", "Ahsoka": "アソーカ",
+    "Kylo Ren": "カイロ・レン", "Finn": "フィン", "Princess Leia": "レイア姫", "Han Solo": "ハン・ソロ",
+    "Luke Skywalker": "ルーク・スカイウォーカー", "Kermit the Frog": "カーミット", "Miss Piggy": "ミス・ピギー",
+    "Fozzie Bear": "フォジー・ベア", "Gonzo": "ゴンゾー", "Tinker Bell": "ティンカー・ベル",
+    "Cinderella": "シンデレラ", "Fairy Godmother": "フェアリー・ゴッドマザー",
+    "Winnie the Pooh": "くまのプーさん", "Mad Hatter": "帽子屋", "Cheshire Cat": "チェシャ猫",
+    "White Rabbit": "白うさぎ", "Alice": "アリス", "Queen of Hearts": "ハートの女王",
+    "Jafar": "ジャファー", "Zootopia": "ズートピア", "Chernabog": "チェルナボーグ",
+    "Pocahontas": "ポカホンタス", "Boo": "ブー", "Violet Parr": "バイオレット・パー",
+    "Tarzan": "ターザン", "Sven": "スヴェン", "Kristoff": "クリストフ", "Prince Eric": "エリック王子",
+    "Rex (Toy Story)": "レックス", "Hamm": "ハム",
+}
+character_options = '<option value="All">すべて</option>' + "".join(
+    f'<option value="{c}">{CHARACTER_LABELS_JA.get(c, c)}</option>' for c in TOP_CHARACTERS
 )
 
 html_doc = r"""<!DOCTYPE html>
@@ -70,7 +161,7 @@ html_doc = r"""<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pin Registry — Disney Collectible Pin Database</title>
+<title>Pin Finder — Disney Collectible Pin Database</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -93,9 +184,10 @@ html_doc = r"""<!DOCTYPE html>
   .header-collage {
     position: absolute; inset: 0; z-index: 0;
     display: grid; grid-template-columns: repeat(7, 1fr); gap: 0;
+    background: var(--navy-deep);
   }
   .header-collage img {
-    width: 100%; height: 100%; object-fit: cover; display: block; filter: saturate(0.9);
+    width: 100%; height: 100%; object-fit: contain; display: block; filter: saturate(0.9);
   }
   .header-overlay {
     position: absolute; inset: 0; z-index: 1;
@@ -103,11 +195,11 @@ html_doc = r"""<!DOCTYPE html>
   }
   .header-inner { max-width: 1100px; margin: 0 auto; position: relative; z-index: 2; }
   .brand-row { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 34px; }
-  .brand { font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+  .brand { font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 10px; color: #ffffff; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; }
   .brand .badge-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--gold); }
-  .brand-tag { font-size: 12px; color: rgba(255,255,255,0.6); letter-spacing: 0.08em; text-transform: uppercase; }
-  .hero-title { font-size: clamp(28px, 5vw, 48px); font-weight: 700; line-height: 1.1; max-width: 720px; margin: 0 0 14px; }
-  .hero-sub { font-size: 15px; color: rgba(255,255,255,0.75); max-width: 560px; margin: 0 0 28px; line-height: 1.6; }
+  .brand-tag { font-size: 12px; color: rgba(255,255,255,0.85); letter-spacing: 0.08em; text-transform: uppercase; text-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+  .hero-title { font-size: clamp(22px, 3.6vw, 48px); font-weight: 700; line-height: 1.1; max-width: 100%; margin: 0 0 14px; white-space: nowrap; color: #ffffff; text-shadow: -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000, 0 0 8px rgba(0,0,0,0.5); }
+  .hero-sub { font-size: 15px; color: #ffffff; max-width: 560px; margin: 0 0 28px; line-height: 1.6; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 6px rgba(0,0,0,0.4); }
   #search { width: 100%; max-width: 620px; padding: 14px 20px; font-size: 16px; border-radius: 999px; border: none; background: white; color: var(--ink); }
   .stat-strip { display: flex; gap: 26px; margin-top: 26px; flex-wrap: wrap; }
   .stat .num { font-family: 'Baloo 2', sans-serif; font-size: 24px; color: var(--gold-light); font-weight: 700; }
@@ -218,22 +310,22 @@ html_doc = r"""<!DOCTYPE html>
 
 <header>
   <div class="header-collage">
-    <img src="images/header-1.jpg" alt="">
     <img src="images/header-2.jpg" alt="">
-    <img src="images/header-3.jpg" alt="">
-    <img src="images/header-4.jpg" alt="">
+    <img src="images/header-1.jpg" alt="">
     <img src="images/header-5.jpg" alt="">
+    <img src="images/header-4.jpg" alt="">
     <img src="images/header-6.jpg" alt="">
+    <img src="images/header-3.jpg" alt="">
     <img src="images/header-7.jpg" alt="">
   </div>
   <div class="header-overlay"></div>
   <div class="header-inner">
     <div class="brand-row">
-      <div class="brand"><span class="badge-dot"></span>Pin Registry</div>
+      <div class="brand"><span class="badge-dot"></span>Pin Finder</div>
       <div class="brand-tag">Collector's Database</div>
     </div>
-    <h1 class="hero-title">すべてのディズニーピンを、ひとつの場所で。</h1>
-    <p class="hero-sub">相場・限定数・パーク・シリーズから探せる、ディズニーコレクター向けピンデータベース。</p>
+    <h1 class="hero-title">探していたピン、ここで見つかるかも。</h1>
+    <p class="hero-sub">ディズニーピンを、キャラクター・パーク・シリーズ・限定数などから探せます。</p>
     <input type="text" id="search" placeholder="ピン名・キャラクター・シリーズ・Pin ID で検索…">
     <div class="stat-strip" id="statStrip"></div>
   </div>
@@ -241,24 +333,24 @@ html_doc = r"""<!DOCTYPE html>
 
 <div class="filter-bar">
   <div class="chip-row">
-    <div class="chip-group"><div class="chip-group-label">Park</div><select class="filter-select" id="parkSelect">__PARK_OPTIONS__</select></div>
-    <div class="chip-group"><div class="chip-group-label">Collection</div><select class="filter-select" id="collectionSelect">__COLLECTION_OPTIONS__</select></div>
-    <div class="chip-group"><div class="chip-group-label">Edition Type</div><select class="filter-select" id="editionSelect">__EDITION_OPTIONS__</select></div>
-    <div class="chip-group"><div class="chip-group-label">Status</div><select class="filter-select" id="statusSelect">__STATUS_OPTIONS__</select></div>
-    <div class="chip-group"><div class="chip-group-label">Series</div><select class="filter-select" id="seriesSelect">__SERIES_OPTIONS__</select></div>
-    <div class="chip-group"><div class="chip-group-label">Color</div><select class="filter-select" id="colorSelect">__COLOR_OPTIONS__</select></div>
-    <div class="chip-group"><div class="chip-group-label">Character</div><select class="filter-select" id="characterSelect">__CHARACTER_OPTIONS__</select></div>
-    <div class="chip-group"><div class="chip-group-label">LE Number (以下)</div><input type="number" id="leMax" placeholder="例: 2500" class="le-input"></div>
+    <div class="chip-group"><div class="chip-group-label">パーク</div><select class="filter-select" id="parkSelect">__PARK_OPTIONS__</select></div>
+    <div class="chip-group"><div class="chip-group-label">作品/コレクション</div><select class="filter-select" id="collectionSelect">__COLLECTION_OPTIONS__</select></div>
+    <div class="chip-group"><div class="chip-group-label">エディション種別</div><select class="filter-select" id="editionSelect">__EDITION_OPTIONS__</select></div>
+    <div class="chip-group"><div class="chip-group-label">ステータス</div><select class="filter-select" id="statusSelect">__STATUS_OPTIONS__</select></div>
+    <div class="chip-group"><div class="chip-group-label">シリーズ</div><select class="filter-select" id="seriesSelect">__SERIES_OPTIONS__</select></div>
+    <div class="chip-group"><div class="chip-group-label">カラー</div><select class="filter-select" id="colorSelect">__COLOR_OPTIONS__</select></div>
+    <div class="chip-group"><div class="chip-group-label">キャラクター</div><select class="filter-select" id="characterSelect">__CHARACTER_OPTIONS__</select></div>
+    <div class="chip-group"><div class="chip-group-label">LE数(以下)</div><input type="number" id="leMax" placeholder="例: 2500" class="le-input"></div>
   </div>
   <div class="status-toggle-row">
     <div class="status-toggle-label">表示するステータス:</div>
-    <label class="status-toggle"><input type="checkbox" data-toggle-status="Official" checked> Official</label>
-    <label class="status-toggle"><input type="checkbox" data-toggle-status="Likely Official" checked> Likely Official</label>
-    <label class="status-toggle"><input type="checkbox" data-toggle-status="Unverified" checked> Unverified</label>
-    <label class="status-toggle"><input type="checkbox" data-toggle-status="Fantasy Pin" checked> Fantasy Pin</label>
-    <label class="status-toggle"><input type="checkbox" data-toggle-status="Non-Tradeable" checked> Non-Tradeable</label>
-    <label class="status-toggle"><input type="checkbox" data-toggle-status="Unofficial"> Unofficial</label>
-    <label class="status-toggle"><input type="checkbox" data-toggle-status="Not a Pin"> Not a Pin</label>
+    <label class="status-toggle"><input type="checkbox" data-toggle-status="Official" checked> 公式確認済み</label>
+    <label class="status-toggle"><input type="checkbox" data-toggle-status="Likely Official" checked> 公式の可能性が高い</label>
+    <label class="status-toggle"><input type="checkbox" data-toggle-status="Unverified" checked> 未確認</label>
+    <label class="status-toggle"><input type="checkbox" data-toggle-status="Fantasy Pin" checked> ファンタジーピン</label>
+    <label class="status-toggle"><input type="checkbox" data-toggle-status="Non-Tradeable" checked> トレード対象外</label>
+    <label class="status-toggle"><input type="checkbox" data-toggle-status="Unofficial"> 非公式</label>
+    <label class="status-toggle"><input type="checkbox" data-toggle-status="Not a Pin"> ピン以外</label>
     <label class="status-toggle"><input type="checkbox" id="favOnlyToggle"> ★ お気に入りのみ表示</label>
   </div>
 </div>
@@ -269,7 +361,7 @@ html_doc = r"""<!DOCTYPE html>
     <div class="section-count" id="resultCount"></div>
   </div>
   <div class="sort-bar">
-    <label for="sortSelect">Sort:</label>
+    <label for="sortSelect">並び替え:</label>
     <select id="sortSelect">
       <option value="default" selected>Default(出品数順)</option>
       <option value="price_desc">価格が高い順</option>
@@ -301,7 +393,7 @@ html_doc = r"""<!DOCTYPE html>
   <div class="page-summary" id="pageSummary"></div>
 </main>
 
-<footer>Pin Registry — データ出典: eBay Browse API（米国市場） / 表示価格は出品時点の参考値です / 1時間ごと自動更新</footer>
+<footer>Pin Finder — データ出典: eBay Browse API（米国市場） / 表示価格は出品時点の参考値です / 1時間ごと自動更新</footer>
 
 <div class="overlay" id="overlay">
   <div class="modal">
@@ -312,10 +404,10 @@ html_doc = r"""<!DOCTYPE html>
 </div>
 
 <div class="status-dropdown" id="sharedStatusDropdown">
-  <div class="status-option status-own" data-status="own">You already <b>OWN</b></div>
-  <div class="status-option status-iso" data-status="iso">You're In Search Of <b>(ISO)</b></div>
-  <div class="status-option status-trade" data-status="trade">You're willing to <b>TRADE</b></div>
-  <div class="status-option status-grail" data-status="grail">Hard-to-find <b>GRAILS</b></div>
+  <div class="status-option status-own" data-status="own">すでに<b>持っている</b></div>
+  <div class="status-option status-iso" data-status="iso"><b>探している</b>(ISO)</div>
+  <div class="status-option status-trade" data-status="trade"><b>トレード</b>可能</div>
+  <div class="status-option status-grail" data-status="grail">レアな<b>お宝ピン</b></div>
   <div class="status-option status-clear" data-status="">ステータスを解除</div>
 </div>
 
@@ -350,14 +442,19 @@ function cardHtml(p, idx) {
     if (m) releaseDate = m[1];
   }
   const officialBadge = p.official ? '<span class="tag official">✓ 公式情報あり</span>' : '';
-  const fantasyBanner = status === 'Fantasy Pin' ? '<div class="fantasy-banner">✦ FANTASY PIN(非公式ファンメイド)✦</div>' : '';
+  const fantasyBanner = status === 'Fantasy Pin' ? '<div class="fantasy-banner">✦ ファンタジーピン(非公式ファンメイド)✦</div>' : '';
   const seriesDisplay = (p.series || '').split(';')[0].trim();
   const entry = collection[p.pin_id] || {};
+  const rarityLabel = RARITY_LABELS_JA[rarity] || rarity;
+  const statusLabel = STATUS_LABELS_JA_JS[status] || status;
+  const parkLabel = PARK_LABELS_JA_JS[p.park] || p.park;
+  const editionLabel = EDITION_LABELS_JA_JS[editionType] || editionType;
+  const collectionLabel = COLLECTION_LABELS_JA_JS[collectionVal] || collectionVal;
 
   return `
     <div class="pin-card" data-idx="${idx}">
       <div class="hang-hole"><span class="hh-ear hh-ear-l"></span><span class="hh-ear hh-ear-r"></span><span class="hh-face"></span></div>
-      <div class="rarity-badge rarity-${rarityClass}">${rarity}</div>
+      <div class="rarity-badge rarity-${rarityClass}">${rarityLabel}</div>
       <button class="corner-fav-btn ${entry.favorite ? 'active' : ''}" data-pin-id="${p.pin_id}" data-action="favorite">${entry.favorite ? '★' : '☆'}</button>
       ${fantasyBanner}
       <div class="pin-img-frame"><img src="${esc(p.image_url)}" loading="lazy" onerror="this.style.display='none'"></div>
@@ -365,30 +462,53 @@ function cardHtml(p, idx) {
         <div class="pin-title-link">${esc(p.title)}</div>
         <div class="action-row">
           <div class="iso-btn-group">
-            <button class="iso-btn action-btn ${(entry.status==='iso'||entry.status==='trade'||entry.status==='grail')?'active':''}" data-pin-id="${p.pin_id}" data-action="iso">🔍 ISO${entry.status==='trade'?' <span class="status-tag status-trade">TRADE</span>':''}${entry.status==='grail'?' <span class="status-tag status-grail">GRAIL</span>':''}</button>
+            <button class="iso-btn action-btn ${(entry.status==='iso'||entry.status==='trade'||entry.status==='grail')?'active':''}" data-pin-id="${p.pin_id}" data-action="iso">🔍 探してる${entry.status==='trade'?' <span class="status-tag status-trade">トレード可</span>':''}${entry.status==='grail'?' <span class="status-tag status-grail">お宝</span>':''}</button>
             <button class="iso-caret" data-pin-id="${p.pin_id}">▾</button>
           </div>
-          <button class="own-btn action-btn ${entry.status==='own'?'active':''}" data-pin-id="${p.pin_id}" data-action="own">✓ OWN</button>
+          <button class="own-btn action-btn ${entry.status==='own'?'active':''}" data-pin-id="${p.pin_id}" data-action="own">✓ 持ってる</button>
         </div>
-        <div class="series-box"><div class="series-label">SERIES</div><div class="series-value">${esc(seriesDisplay) || '—'}</div></div>
+        <div class="series-box"><div class="series-label">シリーズ</div><div class="series-value">${esc(seriesDisplay) || '—'}</div></div>
         <div class="pin-meta">
-          <span class="tag status-tag-${statusClass}" data-filter-type="status" data-filter-value="${status}">${status}</span>
-          <span class="tag park" data-filter-type="park" data-filter-value="${p.park}">${p.park}</span>
+          <span class="tag status-tag-${statusClass}" data-filter-type="status" data-filter-value="${status}">${statusLabel}</span>
+          <span class="tag park" data-filter-type="park" data-filter-value="${p.park}">${parkLabel}</span>
           ${le ? `<span class="tag le" data-filter-type="le" data-filter-value="${le}">LE ${le}</span>` : ''}
-          <span class="tag" data-filter-type="edition" data-filter-value="${editionType}">${editionType}</span>
-          <span class="tag" data-filter-type="collection" data-filter-value="${collectionVal}">${collectionVal}</span>
+          <span class="tag" data-filter-type="edition" data-filter-value="${editionType}">${editionLabel}</span>
+          <span class="tag" data-filter-type="collection" data-filter-value="${collectionVal}">${collectionLabel}</span>
           ${officialBadge}
         </div>
       </div>
       <div class="pin-price">$${p.min_price.toFixed(2)} – $${p.max_price.toFixed(2)}</div>
       <div class="release-bar">
         <span class="pin-id-small" data-pin-id="${p.pin_id}">${p.pin_id}</span>
-        <span>Released: ${releaseDate || 'Unknown'}</span>
+        <span>発売日: ${releaseDate || '不明'}</span>
       </div>
     </div>`;
 }
 
 const RARITY_ORDER = { 'Legendary':0,'Rare':1,'Uncommon':2,'Common':3,'Unknown':4 };
+const RARITY_LABELS_JA = { 'Legendary':'伝説級','Rare':'レア','Uncommon':'やや珍しい','Common':'一般','Unknown':'不明' };
+const PARK_LABELS_JA_JS = {
+  'D23 Expo':'D23 Expo','Walt Disney World':'ウォルト・ディズニー・ワールド','Disneyland Resort':'ディズニーランド・リゾート',
+  'Disney Parks (Shared/Unspecified)':'ディズニーパークス(共通)','Disney Store / Online Exclusive':'ディズニーストア/オンライン限定',
+  'Tokyo Disneyland':'東京ディズニーランド','Disneyland Paris':'ディズニーランド・パリ','Hong Kong Disneyland':'香港ディズニーランド',
+  'Shanghai Disneyland':'上海ディズニーランド','Convention Exclusive (SDCC等)':'コンベンション限定(SDCC等)','Other / Unknown':'その他/不明',
+};
+const COLLECTION_LABELS_JA_JS = {
+  'Mickey & Friends':'ミッキー&フレンズ','Princesses':'プリンセス','Star Wars':'スター・ウォーズ','Marvel':'マーベル',
+  'Pixar':'ピクサー','Villains':'ヴィランズ','Attractions':'アトラクション','Winnie the Pooh & Friends':'くまのプーさん&フレンズ',
+  'Alice in Wonderland':'ふしぎの国のアリス','Muppets':'マペッツ','Peter Pan / Neverland':'ピーター・パン/ネバーランド',
+  'Lilo & Stitch':'リロ&スティッチ','The Lion King':'ライオン・キング','Nightmare Before Christmas':'ナイトメアー・ビフォア・クリスマス',
+  'Aristocats':'おしゃれキャット','Dumbo':'ダンボ','Hercules':'ヘラクレス','Big Hero 6':'ベイマックス','Zootopia':'ズートピア',
+  'Kingdom Hearts':'キングダム ハーツ','Tarzan':'ターザン','Classic Disney Animation':'クラシック作品','Modern Disney Animation':'近年の作品','Other':'その他',
+};
+const EDITION_LABELS_JA_JS = {
+  'Limited Edition (LE)':'数量限定(LE)','Limited Release (LR)':'期間限定(LR)','Open Edition (OE)':'通常販売(OE)',
+  'Mystery / Chaser':'ミステリー/チェイサー','Cast Member Trading':'キャスト用トレーディング','Unknown':'不明',
+};
+const STATUS_LABELS_JA_JS = {
+  'Official':'公式確認済み','Likely Official':'公式の可能性が高い','Unverified':'未確認','Fantasy Pin':'ファンタジーピン',
+  'Non-Tradeable':'トレード対象外','Unofficial':'非公式','Not a Pin':'ピン以外の商品',
+};
 const COLOR_THEMES = {
   'Red':{bg:'linear-gradient(180deg,#fff0f0 0%,#fdf3df 100%)',accent:'#e0687a'},
   'Pink':{bg:'linear-gradient(180deg,#fff0f7 0%,#fdf3df 100%)',accent:'#e08bb8'},
@@ -497,9 +617,9 @@ function refreshCardState(pinId) {
     const ownBtn = card.querySelector('.own-btn');
     if (favBtn) { favBtn.classList.toggle('active', !!entry.favorite); favBtn.textContent = entry.favorite?'★':'☆'; }
     if (isoBtn) {
-      let label = '🔍 ISO';
-      if (entry.status==='trade') label += ' <span class="status-tag status-trade">TRADE</span>';
-      if (entry.status==='grail') label += ' <span class="status-tag status-grail">GRAIL</span>';
+      let label = '🔍 探してる';
+      if (entry.status==='trade') label += ' <span class="status-tag status-trade">トレード可</span>';
+      if (entry.status==='grail') label += ' <span class="status-tag status-grail">お宝</span>';
       isoBtn.innerHTML = label;
       isoBtn.classList.toggle('active', ['iso','trade','grail'].includes(entry.status));
     }
@@ -613,24 +733,24 @@ function openModal(p) {
   if (p.official) {
     officialHtml = `<div style="margin-top:16px;padding:14px;background:rgba(232,169,201,0.15);border-radius:10px;border:1px solid rgba(232,169,201,0.4);">
       <div style="font-weight:700;font-size:13px;color:#8a2a5c;margin-bottom:8px;">✓ 公式シリーズ情報</div>
-      <div class="detail-row"><span>Series</span><span>${esc(p.official.series_name)}</span></div>
-      <div class="detail-row"><span>Origin</span><span>${esc(p.official.origin)}</span></div>
-      <div class="detail-row"><span>Edition Type</span><span>${esc(p.official.edition_type)}</span></div>
-      ${p.official.edition_count ? `<div class="detail-row"><span>Edition Count</span><span>${p.official.edition_count}</span></div>` : ''}
-      ${p.official.original_price ? `<div class="detail-row"><span>Original Price</span><span>$${p.official.original_price}</span></div>` : ''}
+      <div class="detail-row"><span>シリーズ名</span><span>${esc(p.official.series_name)}</span></div>
+      <div class="detail-row"><span>発売元</span><span>${esc(p.official.origin)}</span></div>
+      <div class="detail-row"><span>エディション種別</span><span>${esc(p.official.edition_type)}</span></div>
+      ${p.official.edition_count ? `<div class="detail-row"><span>限定数</span><span>${p.official.edition_count}</span></div>` : ''}
+      ${p.official.original_price ? `<div class="detail-row"><span>発売時価格</span><span>$${p.official.original_price}</span></div>` : ''}
     </div>`;
   }
   document.getElementById('modalBody').innerHTML = `
     <div class="mono" style="font-size:12px;color:var(--gold);font-weight:700;margin-bottom:6px;">${p.pin_id}</div>
     <h2>${esc(p.title)}</h2>
-    <div class="detail-row"><span>Park</span><span>${p.park}</span></div>
-    <div class="detail-row"><span>Edition Type</span><span>${p.edition_type||'—'}</span></div>
-    <div class="detail-row"><span>Price Range</span><span>$${p.min_price.toFixed(2)} – $${p.max_price.toFixed(2)}</span></div>
-    <div class="detail-row"><span>Average Price</span><span>$${p.avg_price.toFixed(2)}</span></div>
-    <div class="detail-row"><span>LE Count</span><span>${p.le_count||'—'}</span></div>
-    <div class="detail-row"><span>Characters</span><span>${esc(p.characters)||'—'}</span></div>
-    <div class="detail-row"><span>Series</span><span>${esc(p.series)||'—'}</span></div>
-    <div class="detail-row"><span>Listings Seen</span><span>${p.count}</span></div>
+    <div class="detail-row"><span>パーク</span><span>${PARK_LABELS_JA_JS[p.park] || p.park}</span></div>
+    <div class="detail-row"><span>エディション種別</span><span>${EDITION_LABELS_JA_JS[p.edition_type] || p.edition_type || '—'}</span></div>
+    <div class="detail-row"><span>価格帯</span><span>$${p.min_price.toFixed(2)} – $${p.max_price.toFixed(2)}</span></div>
+    <div class="detail-row"><span>平均価格</span><span>$${p.avg_price.toFixed(2)}</span></div>
+    <div class="detail-row"><span>LE数</span><span>${p.le_count||'—'}</span></div>
+    <div class="detail-row"><span>キャラクター</span><span>${esc(p.characters)||'—'}</span></div>
+    <div class="detail-row"><span>シリーズ</span><span>${esc(p.series)||'—'}</span></div>
+    <div class="detail-row"><span>出品件数</span><span>${p.count}</span></div>
     ${officialHtml}
     <a class="modal-link" href="${p.url}" target="_blank">eBayで見る →</a>
   `;
