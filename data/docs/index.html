@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pin Finder — Disney Collectible Pin Database</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #7B6FC4; --navy-deep: #5C4FA8; --gold: #E8A9C9; --gold-light: #F3C9DE;
+    --red: #E0687A; --teal: #5CC7B8; --cream: #FFF8FB; --cream-dim: #FBEFF5;
+    --ink: #4A3F5C; --ink-soft: #8B7F9E; --line: #F0DCE8;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--cream); color: var(--ink); font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+  h1, h2, .display { font-family: 'Baloo 2', sans-serif; letter-spacing: -0.01em; }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+  a { color: inherit; text-decoration: none; }
+
+  header {
+    position: relative; padding: 28px 24px 60px; overflow: hidden; color: var(--cream);
+    background: var(--navy-deep);
+  }
+  .header-collage {
+    position: absolute; inset: 0; z-index: 0;
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 0;
+    background: var(--navy-deep);
+  }
+  .header-collage img {
+    width: 100%; height: 100%; object-fit: contain; display: block; filter: saturate(0.9);
+  }
+  .header-overlay {
+    position: absolute; inset: 0; z-index: 1;
+    background: linear-gradient(180deg, rgba(232,201,109,0.55) 0%, rgba(196,158,70,0.70) 60%, rgba(150,115,40,0.82) 100%);
+  }
+  .header-inner { max-width: 1100px; margin: 0 auto; position: relative; z-index: 2; }
+  .brand-row { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 34px; }
+  .brand { font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 10px; color: #ffffff; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; }
+  .brand .badge-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--gold); }
+  .brand-tag { font-size: 12px; color: rgba(255,255,255,0.85); letter-spacing: 0.08em; text-transform: uppercase; text-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+  .hero-title { font-size: clamp(22px, 3.6vw, 48px); font-weight: 700; line-height: 1.1; max-width: 100%; margin: 0 0 14px; white-space: nowrap; color: #ffffff; text-shadow: -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000, 0 0 8px rgba(0,0,0,0.5); }
+  .hero-sub { font-size: 15px; color: #ffffff; max-width: 560px; margin: 0 0 28px; line-height: 1.6; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 6px rgba(0,0,0,0.4); }
+  #search { width: 100%; max-width: 620px; padding: 14px 20px; font-size: 16px; border-radius: 999px; border: none; background: white; color: var(--ink); }
+  .stat-strip { display: flex; gap: 26px; margin-top: 26px; flex-wrap: wrap; }
+  .stat .num { font-family: 'Baloo 2', sans-serif; font-size: 24px; color: var(--gold-light); font-weight: 700; }
+  .stat .label { font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255,255,255,0.55); }
+
+  .filter-bar { max-width: 1100px; margin: -30px auto 0; padding: 0 24px; position: relative; z-index: 2; }
+  .chip-row { background: white; border-radius: 16px; padding: 16px 18px; box-shadow: 0 10px 26px rgba(90,26,110,0.12); display: flex; gap: 18px; flex-wrap: wrap; align-items: center; }
+  .chip-group { display: flex; flex-direction: column; gap: 6px; }
+  .chip-group-label { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); font-weight: 700; }
+  .filter-select, .le-input { padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: white; font-size: 13px; min-width: 140px; }
+  .status-toggle-row { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+  .status-toggle-label { font-size: 11.5px; font-weight: 700; color: var(--ink-soft); }
+  .status-toggle { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--ink-soft); cursor: pointer; }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 44px 24px 100px; }
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; border-bottom: 2px solid var(--ink); padding-bottom: 8px; }
+  .section-title { font-size: 22px; font-weight: 700; }
+  .section-count { font-size: 12.5px; color: var(--ink-soft); }
+  .sort-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 12.5px; color: var(--ink-soft); }
+  .sort-bar select { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--line); font-size: 12.5px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; margin-bottom: 30px; }
+
+  .pin-card { background: #fff; border-radius: 18px; box-shadow: 0 3px 10px rgba(123,111,196,0.10); cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; position: relative; border: 1px solid var(--line); display: flex; flex-direction: column; }
+  .pin-card:hover { transform: translateY(-4px) scale(1.01); box-shadow: 0 12px 26px rgba(123,111,196,0.20); }
+  .hang-hole { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); width: 36px; height: 22px; z-index: 2; }
+  .hh-face { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 24px; height: 14px; border-radius: 50%; background: var(--cream); border: 1px solid #e2dcc8; }
+  .hh-ear { position: absolute; top: 0; width: 13px; height: 13px; border-radius: 50%; background: var(--cream); border: 1px solid #e2dcc8; }
+  .hh-ear-l { left: 2px; } .hh-ear-r { right: 2px; }
+  .rarity-badge { position: absolute; top: 10px; left: 10px; z-index: 2; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 999px; }
+  .rarity-legendary { background: #f0c419; color: #5a4300; }
+  .rarity-rare { background: #c9a7f0; color: #3a1a5c; }
+  .rarity-uncommon { background: #8fd4c1; color: #0b3d31; }
+  .rarity-common { background: #d8d2c2; color: #59523e; }
+  .rarity-unknown { background: #e2e2e2; color: #888; }
+  .corner-fav-btn { position: absolute; top: 8px; right: 8px; z-index: 2; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line); background: rgba(255,255,255,0.9); font-size: 14px; cursor: pointer; }
+  .corner-fav-btn.active { background: #fff3d6; border-color: var(--gold); color: #b8860b; }
+  .fantasy-banner { position: absolute; top: 32px; left: 0; right: 0; z-index: 3; background: linear-gradient(120deg, #a94fd6, #7b2fb0); color: white; text-align: center; font-size: 10px; font-weight: 800; padding: 5px 4px; }
+  .pin-img-frame { aspect-ratio: 1/1; background: #f4f1e8; display: flex; align-items: center; justify-content: center; padding: 20px; flex-shrink: 0; }
+  .pin-img-frame img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .pin-body { padding: 14px 14px 0; flex: 1 1 auto; }
+  .pin-title-link { font-size: 14px; font-weight: 700; line-height: 1.35; color: #7b2fb0; height: 38px; overflow: hidden; margin-bottom: 10px; }
+  .action-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .action-btn { border: 1px solid var(--line); background: white; border-radius: 8px; padding: 7px 10px; font-size: 12px; font-weight: 700; color: var(--ink-soft); cursor: pointer; }
+  .own-btn { flex: 1; }
+  .own-btn.active { background: rgba(92,199,184,0.18); border-color: var(--teal); color: #167367; }
+  .iso-btn-group { flex: 1; display: flex; position: relative; }
+  .iso-btn { flex: 1; border-radius: 8px 0 0 8px; border-right: none; }
+  .iso-btn.active { background: rgba(224,104,122,0.14); border-color: var(--red); color: var(--red); }
+  .iso-caret { border: 1px solid var(--line); border-radius: 0 8px 8px 0; background: white; padding: 7px 9px; font-size: 12px; cursor: pointer; }
+  .status-dropdown { display: none; position: fixed; z-index: 100; background: white; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 24px rgba(90,26,110,0.18); min-width: 220px; }
+  .status-dropdown.open { display: block; }
+  .status-option { padding: 11px 16px; font-size: 13px; text-align: center; cursor: pointer; border-bottom: 1px solid #f5eefa; }
+  .status-option:last-child { border-bottom: none; }
+  .status-option:hover { background: var(--cream-dim); }
+  .status-option.status-own { color: #1a8f5c; font-weight: 700; }
+  .status-option.status-iso { color: #c99a1a; font-weight: 700; }
+  .status-option.status-trade { color: #2f6fb0; font-weight: 700; }
+  .status-option.status-grail { color: #b8860b; font-weight: 800; }
+  .status-option.status-clear { color: var(--ink-soft); font-size: 11.5px; }
+  .status-tag { display: inline-block; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px; margin-left: 6px; }
+  .status-tag.status-trade { background: rgba(47,111,176,0.14); color: #2f6fb0; }
+  .status-tag.status-grail { background: rgba(184,134,11,0.14); color: #b8860b; }
+  .series-box { background: var(--cream-dim); border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; }
+  .series-label { font-size: 9.5px; letter-spacing: 0.06em; color: var(--ink-soft); font-weight: 700; }
+  .series-value { font-size: 12.5px; font-weight: 700; color: #7b2fb0; }
+  .pin-price { font-family: 'IBM Plex Mono', monospace; font-size: 13.5px; color: var(--red); font-weight: 700; padding: 4px 14px 12px; flex-shrink: 0; }
+  .pin-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+  .tag { font-size: 10px; padding: 3px 8px; border-radius: 999px; background: var(--cream-dim); color: var(--ink-soft); cursor: pointer; }
+  .tag.park { background: rgba(92,199,184,0.18); color: #167367; }
+  .tag.le { background: rgba(224,104,122,0.12); color: var(--red); }
+  .tag.official { background: rgba(232,169,201,0.3); color: #8a2a5c; font-weight: 700; }
+  .status-tag-official { background: rgba(26,143,92,0.16); color: #1a8f5c; font-weight: 700; }
+  .status-tag-likely-official { background: rgba(47,111,176,0.14); color: #2f6fb0; font-weight: 700; }
+  .status-tag-unverified { background: rgba(224,104,122,0.1); color: var(--red); font-weight: 700; }
+  .status-tag-fantasy-pin { background: linear-gradient(120deg, #f0c9f7, #d9a7f0); color: #5a1a6e; font-weight: 800; }
+  .status-tag-non-tradeable { background: rgba(90,90,90,0.12); color: #5b5347; font-weight: 700; }
+  .status-tag-not-a-pin { background: rgba(90,90,90,0.18); color: #444; font-weight: 700; }
+  .status-tag-unofficial { background: rgba(224,104,122,0.14); color: var(--red); font-weight: 700; }
+  .release-bar { display: flex; justify-content: space-between; align-items: center; background: var(--cream-dim); border-top: 1px solid var(--line); border-radius: 0 0 17px 17px; padding: 8px 14px; font-size: 11px; color: var(--ink-soft); flex-shrink: 0; }
+  .pin-id-small { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--gold); font-weight: 700; cursor: pointer; }
+  .empty-msg { text-align: center; padding: 50px 20px; color: var(--ink-soft); display: none; }
+  .loading-msg { text-align: center; padding: 60px 20px; color: var(--ink-soft); }
+  .list-controls-bar { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 16px; margin: 20px 0 8px; padding: 10px 18px; background: white; border-radius: 10px; border: 1px solid var(--line); font-size: 12.5px; }
+  .page-numbers { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
+  .page-num-btn { min-width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--line); background: white; font-size: 12.5px; cursor: pointer; }
+  .page-num-btn.current { background: var(--navy); color: white; border-color: var(--navy); font-weight: 700; }
+  .page-num-btn.ellipsis { border: none; background: none; cursor: default; color: var(--ink-soft); }
+  .page-summary { font-size: 12px; color: var(--ink-soft); text-align: center; margin-bottom: 40px; }
+  .jump-control input { width: 70px; padding: 6px; border-radius: 6px; border: 1px solid var(--line); }
+  .jump-control button { padding: 6px 12px; border-radius: 6px; border: none; background: var(--navy); color: white; cursor: pointer; }
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(90,26,110,0.5); z-index: 50; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
+  .overlay.open { display: flex; }
+  .modal { background: var(--cream); max-width: 600px; width: 100%; border-radius: 16px; overflow: hidden; position: relative; }
+  .modal-top { background: #f4f1e8; padding: 30px; display: flex; justify-content: center; }
+  .modal-top img { max-width: 240px; max-height: 240px; object-fit: contain; }
+  .modal-body { padding: 24px 28px 28px; }
+  .modal-close { position: absolute; top: 14px; right: 14px; width: 32px; height: 32px; border-radius: 50%; background: rgba(0,0,0,0.12); border: none; cursor: pointer; }
+  .detail-row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+  .modal-link { display: block; margin-top: 18px; text-align: center; background: var(--navy); color: white; padding: 13px; border-radius: 10px; font-weight: 700; }
+  footer { text-align: center; padding: 28px; color: var(--ink-soft); font-size: 11.5px; }
+  @media (max-width: 640px) {
+    .header-collage { grid-template-columns: repeat(4, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-collage">
+    <img src="images/header-2.jpg" alt="">
+    <img src="images/header-1.jpg" alt="">
+    <img src="images/header-5.jpg" alt="">
+    <img src="images/header-4.jpg" alt="">
+    <img src="images/header-6.jpg" alt="">
+    <img src="images/header-3.jpg" alt="">
+    <img src="images/header-7.jpg" alt="">
+  </div>
+  <div class="header-overlay"></div>
+  <div class="header-inner">
+    <div class="brand-row">
+      <div class="brand"><span class="badge-dot"></span>Pin Finder</div>
+      <div class="brand-tag">Collector's Database</div>
+    </div>
+    <h1 class="hero-title">探していたピン、ここで見つかるかも。</h1>
+    <p class="hero-sub">ディズニーピンを、キャラクター・パーク・シリーズ・限定数などから探せます。</p>
+    <input type="text" id="search" placeholder="ピン名・キャラクター・シリーズ・Pin ID で検索…">
+    <div class="stat-strip" id="statStrip"></div>
+  </div>
+</header>
+
+<div class="filter-bar">
+  <div class="chip-row">
+    <div class="chip-group"><div class="chip-group-label">パーク</div><select class="filter-select" id="parkSelect"><option value="All">すべて</option><option value="D23 Expo">D23 Expo</option><option value="Walt Disney World">ウォルト・ディズニー・ワールド</option><option value="Disneyland Resort">ディズニーランド・リゾート</option><option value="Disney Parks (Shared/Unspecified)">ディズニーパークス(共通)</option><option value="Disney Store / Online Exclusive">ディズニーストア/オンライン限定</option><option value="Tokyo Disneyland">東京ディズニーランド</option><option value="Disneyland Paris">ディズニーランド・パリ</option><option value="Hong Kong Disneyland">香港ディズニーランド</option><option value="Shanghai Disneyland">上海ディズニーランド</option><option value="Convention Exclusive (SDCC等)">コンベンション限定(SDCC等)</option><option value="Other / Unknown">その他/不明</option></select></div>
+    <div class="chip-group"><div class="chip-group-label">作品/コレクション</div><select class="filter-select" id="collectionSelect"><option value="All">すべて</option><option value="Mickey & Friends">ミッキー&フレンズ</option><option value="Princesses">プリンセス</option><option value="Star Wars">スター・ウォーズ</option><option value="Marvel">マーベル</option><option value="Pixar">ピクサー</option><option value="Villains">ヴィランズ</option><option value="Attractions">アトラクション</option><option value="Winnie the Pooh & Friends">くまのプーさん&フレンズ</option><option value="Alice in Wonderland">ふしぎの国のアリス</option><option value="Muppets">マペッツ</option><option value="Peter Pan / Neverland">ピーター・パン/ネバーランド</option><option value="Lilo & Stitch">リロ&スティッチ</option><option value="The Lion King">ライオン・キング</option><option value="Nightmare Before Christmas">ナイトメアー・ビフォア・クリスマス</option><option value="Aristocats">おしゃれキャット</option><option value="Dumbo">ダンボ</option><option value="Hercules">ヘラクレス</option><option value="Big Hero 6">ベイマックス</option><option value="Zootopia">ズートピア</option><option value="Kingdom Hearts">キングダム ハーツ</option><option value="Tarzan">ターザン</option><option value="Classic Disney Animation">クラシック作品</option><option value="Modern Disney Animation">近年の作品</option><option value="Other">その他</option></select></div>
+    <div class="chip-group"><div class="chip-group-label">エディション種別</div><select class="filter-select" id="editionSelect"><option value="All">すべて</option><option value="Limited Edition (LE)">数量限定(LE)</option><option value="Limited Release (LR)">期間限定(LR)</option><option value="Open Edition (OE)">通常販売(OE)</option><option value="Mystery / Chaser">ミステリー/チェイサー</option><option value="Cast Member Trading">キャスト用トレーディング</option><option value="Unknown">不明</option></select></div>
+    <div class="chip-group"><div class="chip-group-label">ステータス</div><select class="filter-select" id="statusSelect"><option value="All">すべて</option><option value="Official">公式確認済み</option><option value="Likely Official">公式の可能性が高い</option><option value="Unverified">未確認</option><option value="Fantasy Pin">ファンタジーピン(非公式)</option><option value="Non-Tradeable">トレード対象外</option><option value="Unofficial">非公式</option><option value="Not a Pin">ピン以外の商品</option></select></div>
+    <div class="chip-group"><div class="chip-group-label">シリーズ</div><select class="filter-select" id="seriesSelect"><option value="All">すべて</option><option value="D23">D23</option><option value="MOG">MOG</option><option value="WDI">WDI</option><option value="Anniversary">アニバーサリー</option><option value="Cast Exclusive">キャスト限定</option><option value="Hidden Mickey">ハイドン・ミッキー</option><option value="Imagineering">イマジニアリング</option><option value="Annual Passholder">年間パスポート限定</option><option value="Artist Series">アーティストシリーズ</option><option value="Mystery">ミステリー</option><option value="Chaser">チェイサー</option><option value="Jumbo">ジャンボ</option><option value="Halloween">ハロウィン</option><option value="Holiday">ホリデー</option><option value="Windows of Attraction">Windows of Attraction</option><option value="Enchanted Doors">Enchanted Doors</option><option value="Magical Theater">Magical Theater</option><option value="Digitize Disney">Digitize Disney</option><option value="Premier Collection">プレミアコレクション</option><option value="Game Changers">Game Changers</option><option value="Play Along">Play Along</option><option value="Character Carousel">Character Carousel</option><option value="Diamond Celebration">ダイヤモンド・セレブレーション</option><option value="50th Anniversary">50周年</option><option value="60th Anniversary">60周年</option></select></div>
+    <div class="chip-group"><div class="chip-group-label">カラー</div><select class="filter-select" id="colorSelect"><option value="All">すべて</option><option value="Red">赤</option><option value="Pink">ピンク</option><option value="Blue">青</option><option value="Aqua">水色</option><option value="Green">緑</option><option value="Yellow">黄</option><option value="Orange">オレンジ</option><option value="Purple">紫</option><option value="Brown">茶</option><option value="Black">黒</option><option value="White">白</option><option value="Multi">多色/その他</option></select></div>
+    <div class="chip-group"><div class="chip-group-label">キャラクター</div><select class="filter-select" id="characterSelect"><option value="All">すべて</option><option value="Ahsoka">アソーカ</option><option value="Aladdin">アラジン</option><option value="Alberto">Alberto</option><option value="Alice">アリス</option><option value="Angel">エンジェル</option><option value="Anna">アナ</option><option value="Ariel">アリエル</option><option value="Aurora">オーロラ姫</option><option value="BB-8">BB-8</option><option value="Baloo">Baloo</option><option value="Bambi">バンビ</option><option value="Baymax">ベイマックス</option><option value="Beast">野獣</option><option value="Belle">ベル</option><option value="Big Al">Big Al</option><option value="Black Panther">ブラックパンサー</option><option value="Black Widow">ブラック・ウィドウ</option><option value="Boba Fett">ボバ・フェット</option><option value="Boo">ブー</option><option value="Buzz Lightyear">バズ・ライトイヤー</option><option value="C-3PO">C-3PO</option><option value="Captain America">キャプテン・アメリカ</option><option value="Captain Hook">フック船長</option><option value="Carl Fredricksen">Carl Fredricksen</option><option value="Chernabog">チェルナボーグ</option><option value="Cheshire Cat">チェシャ猫</option><option value="Chewbacca">チューバッカ</option><option value="Chip">チップ</option><option value="Cinderella">シンデレラ</option><option value="Cruella de Vil">クルエラ・ド・ヴィル</option><option value="Crush">Crush</option><option value="Daisy Duck">デイジーダック</option><option value="Dale">デール</option><option value="Dante">Dante</option><option value="Darth Vader">ダース・ベイダー</option><option value="Dewey">Dewey</option><option value="Disgust">Disgust</option><option value="Doctor Strange">Doctor Strange</option><option value="Donald Duck">ドナルドダック</option><option value="Dory">ドリー</option><option value="Dr. Facilier">Dr. Facilier</option><option value="Duchess">ダッチェス</option><option value="Duffy">ダッフィー</option><option value="Dumbo">ダンボ</option><option value="EVE">イヴ</option><option value="Eeyore">イーヨー</option><option value="Elsa">エルサ</option><option value="Emile">Emile</option><option value="Emperor Zurg">Emperor Zurg</option><option value="Esmeralda">Esmeralda</option><option value="Evil Queen">女王</option><option value="Fairy Godmother">フェアリー・ゴッドマザー</option><option value="Figaro">フィガロ</option><option value="Figment">フィグメント</option><option value="Finn">フィン</option><option value="Flounder">フランダー</option><option value="Flynn Rider">フリン・ライダー</option><option value="Fozzie Bear">フォジー・ベア</option><option value="Gaston">ガストン</option><option value="Gelatoni">ジェラトーニ</option><option value="Genie">ジーニー</option><option value="Gonzo">ゴンゾー</option><option value="Goofy">グーフィー</option><option value="Grogu">グローグー</option><option value="Groot">グルート</option><option value="Gus (Cinderella)">Gus (Cinderella)</option><option value="Hades">ハデス</option><option value="Hamm">ハム</option><option value="Han Solo">ハン・ソロ</option><option value="Hercules">ヘラクレス</option><option value="Hiro Hamada">ヒロ・ハマダ</option><option value="Huey">Huey</option><option value="Hulk">ハルク</option><option value="Iago">Iago</option><option value="Iron Man">アイアンマン</option><option value="Jack Skellington">ジャック・スケリントン</option><option value="Jafar">ジャファー</option><option value="Jaq">Jaq</option><option value="Jasmine">ジャスミン</option><option value="Jessie">ジェシー</option><option value="Jiminy Cricket">Jiminy Cricket</option><option value="John Smith">John Smith</option><option value="Joy">ヨロコビ</option><option value="Judy Hopps">ジュディ・ホップス</option><option value="Kaa">Kaa</option><option value="Kermit the Frog">カーミット</option><option value="Kristoff">クリストフ</option><option value="Kronk">Kronk</option><option value="Kuzco">Kuzco</option><option value="Kylo Ren">カイロ・レン</option><option value="Loki">ロキ</option><option value="Louie">Louie</option><option value="Luca">ルカ</option><option value="Luke Skywalker">ルーク・スカイウォーカー</option><option value="Mad Hatter">帽子屋</option><option value="Maleficent">マレフィセント</option><option value="Marie">マリー</option><option value="Maui">マウイ</option><option value="Meeko">Meeko</option><option value="Megara">メグ</option><option value="Merida">メリダ</option><option value="Mickey Mouse">ミッキーマウス</option><option value="Miguel">Miguel</option><option value="Mike Wazowski">マイク・ワゾウスキー</option><option value="Minnie Mouse">ミニーマウス</option><option value="Mirabel">ミラベル</option><option value="Miss Piggy">ミス・ピギー</option><option value="Moana">モアナ</option><option value="Mowgli">Mowgli</option><option value="Mufasa">ムファサ</option><option value="Mulan">ムーラン</option><option value="Mushu">ムーシュー</option><option value="Nala">ナラ</option><option value="Naveen">Naveen</option><option value="Nemo">ニモ</option><option value="Nick Wilde">ニック・ワイルド</option><option value="Olaf">オラフ</option><option value="Oogie Boogie">Oogie Boogie</option><option value="Orange Bird">オレンジバード</option><option value="Pegasus">Pegasus</option><option value="Peter Pan">ピーター・パン</option><option value="Piglet">ピグレット</option><option value="Pinocchio">ピノキオ</option><option value="Pluto">プルート</option><option value="Pocahontas">ポカホンタス</option><option value="Prince Eric">エリック王子</option><option value="Princess Leia">レイア姫</option><option value="Pumbaa">プンバァ</option><option value="Queen of Hearts">ハートの女王</option><option value="R2-D2">R2-D2</option><option value="Rafiki">ラフィキ</option><option value="Randall">Randall</option><option value="Rapunzel">ラプンツェル</option><option value="Remy">レミー</option><option value="Rex (Toy Story)">レックス</option><option value="Robin Hood">Robin Hood</option><option value="Roz">Roz</option><option value="Russell (Up)">Russell (Up)</option><option value="Sadness">カナシミ</option><option value="Sally">サリー(NBC)</option><option value="Scar">スカー</option><option value="Scrump">スクランプ</option><option value="Simba">シンバ</option><option value="Snow White">白雪姫</option><option value="Spider-Man">スパイダーマン</option><option value="StellaLou">ステラ・ルー</option><option value="Stitch">スティッチ</option><option value="Stormtrooper">ストームトルーパー</option><option value="Sulley">サリー</option><option value="Sven">スヴェン</option><option value="Tarzan">ターザン</option><option value="Terk">Terk</option><option value="The Mandalorian">マンダロリアン</option><option value="Thor">ソー</option><option value="Thumper">Thumper</option><option value="Tiana">ティアナ</option><option value="Tigger">ティガー</option><option value="Timon">ティモン</option><option value="Tinker Bell">ティンカー・ベル</option><option value="Ursula">アースラ</option><option value="Vanellope">ヴァネロペ</option><option value="Venom">Venom</option><option value="Violet Parr">バイオレット・パー</option><option value="WALL-E">ウォーリー</option><option value="Wendy">ウェンディ</option><option value="White Rabbit">白うさぎ</option><option value="Winnie the Pooh">くまのプーさん</option><option value="Woody">ウッディ</option><option value="Yoda">ヨーダ</option><option value="Yzma">Yzma</option><option value="Zootopia">ズートピア</option></select></div>
+    <div class="chip-group"><div class="chip-group-label">LE数(以下)</div><input type="number" id="leMax" placeholder="例: 2500" class="le-input"></div>
+  </div>
+  <div class="status-toggle-row">
+    <div class="status-toggle-label">表示するステータス:</div>
+    <label class="status-toggle"><input type="checkbox" data-toggle-status="Official" checked> 公式確認済み</label>
+    <label class="status-toggle"><input type="checkbox" data-toggle-status="Likely Official" checked> 公式の可能性が高い</label>
+    <label class="status-toggle"><input type="checkbox" data-toggle-status="Unverified" checked> 未確認</label>
+    <label class="status-toggle"><input type="checkbox" data-toggle-status="Fantasy Pin" checked> ファンタジーピン</label>
+    <label class="status-toggle"><input type="checkbox" data-toggle-status="Non-Tradeable" checked> トレード対象外</label>
+    <label class="status-toggle"><input type="checkbox" data-toggle-status="Unofficial"> 非公式</label>
+    <label class="status-toggle"><input type="checkbox" data-toggle-status="Not a Pin"> ピン以外</label>
+    <label class="status-toggle"><input type="checkbox" id="favOnlyToggle"> ★ お気に入りのみ表示</label>
+  </div>
+</div>
+
+<main>
+  <div class="section-head">
+    <div class="section-title">Trending — 出品数が多いピン</div>
+    <div class="section-count" id="resultCount"></div>
+  </div>
+  <div class="sort-bar">
+    <label for="sortSelect">並び替え:</label>
+    <select id="sortSelect">
+      <option value="default" selected>Default(出品数順)</option>
+      <option value="price_desc">価格が高い順</option>
+      <option value="price_asc">価格が安い順</option>
+      <option value="le_asc">LE数が少ない順(レア順)</option>
+      <option value="rarity">レアリティ順</option>
+      <option value="az">タイトル A-Z</option>
+    </select>
+  </div>
+  <div id="loadingMsg" class="loading-msg">読み込み中…</div>
+  <div class="grid" id="pinGrid"></div>
+  <div class="empty-msg" id="emptyMsg">条件に一致するピンが見つかりませんでした。</div>
+  <div class="list-controls-bar">
+    <div class="chip-group"><div class="chip-group-label">表示件数</div>
+      <select class="filter-select" id="perPage">
+        <option value="20" selected>20件</option>
+        <option value="40">40件</option>
+        <option value="60">60件</option>
+        <option value="100">100件</option>
+        <option value="200">200件</option>
+      </select>
+    </div>
+    <div class="page-numbers" id="pageNumbers"></div>
+    <div class="jump-control">
+      <input type="number" id="jumpPage" min="1" placeholder="ページ番号">
+      <button id="jumpBtn">移動</button>
+    </div>
+  </div>
+  <div class="page-summary" id="pageSummary"></div>
+</main>
+
+<footer>Pin Finder — データ出典: eBay Browse API（米国市場） / 表示価格は出品時点の参考値です / 1時間ごと自動更新</footer>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-top"><img id="modalImg" src="" alt=""></div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<div class="status-dropdown" id="sharedStatusDropdown">
+  <div class="status-option status-own" data-status="own">すでに<b>持っている</b></div>
+  <div class="status-option status-iso" data-status="iso"><b>探している</b>(ISO)</div>
+  <div class="status-option status-trade" data-status="trade"><b>トレード</b>可能</div>
+  <div class="status-option status-grail" data-status="grail">レアな<b>お宝ピン</b></div>
+  <div class="status-option status-clear" data-status="">ステータスを解除</div>
+</div>
+
+<script>
+let allPins = [];
+const state = { query:'', park:'All', collection:'All', edition:'All', series:'All', status:'All',
+                 color:'All', character:'All', favOnly:false, leMax:null, page:1, perPage:20,
+                 sort:'default', hiddenStatuses:new Set(['Unofficial','Not a Pin']) };
+let matchingPins = [];
+
+const STORAGE_KEY = 'pinRegistryCollection';
+function loadCollection() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(e) { return {}; } }
+function saveCollection(d) { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }
+let collection = loadCollection();
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function cardHtml(p, idx) {
+  const rarity = p.rarity || 'Unknown';
+  const rarityClass = rarity.toLowerCase();
+  const status = p.quality_status || 'Unverified';
+  const statusClass = status.toLowerCase().replace(/ /g, '-');
+  const collectionVal = p.collection || 'Other';
+  const editionType = p.edition_type || 'Unknown';
+  const le = p.le_count || '';
+  let releaseDate = '';
+  if (p.official && p.official.notes) {
+    const m = p.official.notes.match(/発売日[:：]\s*([\d\-]+)/);
+    if (m) releaseDate = m[1];
+  }
+  const officialBadge = p.official ? '<span class="tag official">✓ 公式情報あり</span>' : '';
+  const fantasyBanner = status === 'Fantasy Pin' ? '<div class="fantasy-banner">✦ ファンタジーピン(非公式ファンメイド)✦</div>' : '';
+  const seriesDisplay = (p.series || '').split(';')[0].trim();
+  const entry = collection[p.pin_id] || {};
+  const rarityLabel = RARITY_LABELS_JA[rarity] || rarity;
+  const statusLabel = STATUS_LABELS_JA_JS[status] || status;
+  const parkLabel = PARK_LABELS_JA_JS[p.park] || p.park;
+  const editionLabel = EDITION_LABELS_JA_JS[editionType] || editionType;
+  const collectionLabel = COLLECTION_LABELS_JA_JS[collectionVal] || collectionVal;
+
+  return `
+    <div class="pin-card" data-idx="${idx}">
+      <div class="hang-hole"><span class="hh-ear hh-ear-l"></span><span class="hh-ear hh-ear-r"></span><span class="hh-face"></span></div>
+      <div class="rarity-badge rarity-${rarityClass}">${rarityLabel}</div>
+      <button class="corner-fav-btn ${entry.favorite ? 'active' : ''}" data-pin-id="${p.pin_id}" data-action="favorite">${entry.favorite ? '★' : '☆'}</button>
+      ${fantasyBanner}
+      <div class="pin-img-frame"><img src="${esc(p.image_url)}" loading="lazy" onerror="this.style.display='none'"></div>
+      <div class="pin-body">
+        <div class="pin-title-link">${esc(p.title)}</div>
+        <div class="action-row">
+          <div class="iso-btn-group">
+            <button class="iso-btn action-btn ${(entry.status==='iso'||entry.status==='trade'||entry.status==='grail')?'active':''}" data-pin-id="${p.pin_id}" data-action="iso">🔍 探してる${entry.status==='trade'?' <span class="status-tag status-trade">トレード可</span>':''}${entry.status==='grail'?' <span class="status-tag status-grail">お宝</span>':''}</button>
+            <button class="iso-caret" data-pin-id="${p.pin_id}">▾</button>
+          </div>
+          <button class="own-btn action-btn ${entry.status==='own'?'active':''}" data-pin-id="${p.pin_id}" data-action="own">✓ 持ってる</button>
+        </div>
+        <div class="series-box"><div class="series-label">シリーズ</div><div class="series-value">${esc(seriesDisplay) || '—'}</div></div>
+        <div class="pin-meta">
+          <span class="tag status-tag-${statusClass}" data-filter-type="status" data-filter-value="${status}">${statusLabel}</span>
+          <span class="tag park" data-filter-type="park" data-filter-value="${p.park}">${parkLabel}</span>
+          ${le ? `<span class="tag le" data-filter-type="le" data-filter-value="${le}">LE ${le}</span>` : ''}
+          <span class="tag" data-filter-type="edition" data-filter-value="${editionType}">${editionLabel}</span>
+          <span class="tag" data-filter-type="collection" data-filter-value="${collectionVal}">${collectionLabel}</span>
+          ${officialBadge}
+        </div>
+      </div>
+      <div class="pin-price">$${p.min_price.toFixed(2)} – $${p.max_price.toFixed(2)}</div>
+      <div class="release-bar">
+        <span class="pin-id-small" data-pin-id="${p.pin_id}">${p.pin_id}</span>
+        <span>発売日: ${releaseDate || '不明'}</span>
+      </div>
+    </div>`;
+}
+
+const RARITY_ORDER = { 'Legendary':0,'Rare':1,'Uncommon':2,'Common':3,'Unknown':4 };
+const RARITY_LABELS_JA = { 'Legendary':'伝説級','Rare':'レア','Uncommon':'やや珍しい','Common':'一般','Unknown':'不明' };
+const PARK_LABELS_JA_JS = {
+  'D23 Expo':'D23 Expo','Walt Disney World':'ウォルト・ディズニー・ワールド','Disneyland Resort':'ディズニーランド・リゾート',
+  'Disney Parks (Shared/Unspecified)':'ディズニーパークス(共通)','Disney Store / Online Exclusive':'ディズニーストア/オンライン限定',
+  'Tokyo Disneyland':'東京ディズニーランド','Disneyland Paris':'ディズニーランド・パリ','Hong Kong Disneyland':'香港ディズニーランド',
+  'Shanghai Disneyland':'上海ディズニーランド','Convention Exclusive (SDCC等)':'コンベンション限定(SDCC等)','Other / Unknown':'その他/不明',
+};
+const COLLECTION_LABELS_JA_JS = {
+  'Mickey & Friends':'ミッキー&フレンズ','Princesses':'プリンセス','Star Wars':'スター・ウォーズ','Marvel':'マーベル',
+  'Pixar':'ピクサー','Villains':'ヴィランズ','Attractions':'アトラクション','Winnie the Pooh & Friends':'くまのプーさん&フレンズ',
+  'Alice in Wonderland':'ふしぎの国のアリス','Muppets':'マペッツ','Peter Pan / Neverland':'ピーター・パン/ネバーランド',
+  'Lilo & Stitch':'リロ&スティッチ','The Lion King':'ライオン・キング','Nightmare Before Christmas':'ナイトメアー・ビフォア・クリスマス',
+  'Aristocats':'おしゃれキャット','Dumbo':'ダンボ','Hercules':'ヘラクレス','Big Hero 6':'ベイマックス','Zootopia':'ズートピア',
+  'Kingdom Hearts':'キングダム ハーツ','Tarzan':'ターザン','Classic Disney Animation':'クラシック作品','Modern Disney Animation':'近年の作品','Other':'その他',
+};
+const EDITION_LABELS_JA_JS = {
+  'Limited Edition (LE)':'数量限定(LE)','Limited Release (LR)':'期間限定(LR)','Open Edition (OE)':'通常販売(OE)',
+  'Mystery / Chaser':'ミステリー/チェイサー','Cast Member Trading':'キャスト用トレーディング','Unknown':'不明',
+};
+const STATUS_LABELS_JA_JS = {
+  'Official':'公式確認済み','Likely Official':'公式の可能性が高い','Unverified':'未確認','Fantasy Pin':'ファンタジーピン',
+  'Non-Tradeable':'トレード対象外','Unofficial':'非公式','Not a Pin':'ピン以外の商品',
+};
+const COLOR_THEMES = {
+  'Red':{bg:'linear-gradient(180deg,#fff0f0 0%,#fdf3df 100%)',accent:'#e0687a'},
+  'Pink':{bg:'linear-gradient(180deg,#fff0f7 0%,#fdf3df 100%)',accent:'#e08bb8'},
+  'Blue':{bg:'linear-gradient(180deg,#eef5ff 0%,#fdf3df 100%)',accent:'#5b8fd6'},
+  'Aqua':{bg:'linear-gradient(180deg,#eafcfa 0%,#fdf3df 100%)',accent:'#3fb8ae'},
+  'Green':{bg:'linear-gradient(180deg,#eefaf0 0%,#fdf3df 100%)',accent:'#5cb87a'},
+  'Yellow':{bg:'linear-gradient(180deg,#fffbea 0%,#fdf3df 100%)',accent:'#e0b23f'},
+  'Orange':{bg:'linear-gradient(180deg,#fff2e6 0%,#fdf3df 100%)',accent:'#e08a3f'},
+  'Purple':{bg:'linear-gradient(180deg,#f5eefc 0%,#fdf3df 100%)',accent:'#a06fd6'},
+  'Brown':{bg:'linear-gradient(180deg,#f7f0e6 0%,#fdf3df 100%)',accent:'#a97c50'},
+  'Black':{bg:'linear-gradient(180deg,#f0f0f2 0%,#fdf3df 100%)',accent:'#5a5a68'},
+  'White':{bg:'linear-gradient(180deg,#fbfbfb 0%,#fdf3df 100%)',accent:'#b0aca0'},
+};
+
+function applyFilters() {
+  matchingPins = allPins.filter(p => {
+    const t = (p.title + ' ' + p.pin_id).toLowerCase();
+    if (state.query && !t.includes(state.query)) return false;
+    if (state.park !== 'All' && p.park !== state.park) return false;
+    if (state.collection !== 'All' && p.collection !== state.collection) return false;
+    if (state.edition !== 'All' && p.edition_type !== state.edition) return false;
+    if (state.series !== 'All' && !(p.series||'').includes(state.series)) return false;
+    if (state.status !== 'All' && p.quality_status !== state.status) return false;
+    if (state.hiddenStatuses.has(p.quality_status)) return false;
+    if (state.color !== 'All' && p.color_tag !== state.color) return false;
+    if (state.character !== 'All' && !(p.characters||'').toLowerCase().includes(state.character.toLowerCase())) return false;
+    if (state.favOnly) {
+      const e = collection[p.pin_id];
+      if (!e || !e.favorite) return false;
+    }
+    if (state.leMax !== null && !isNaN(state.leMax)) {
+      const le = parseInt(p.le_count, 10);
+      if (isNaN(le) || le > state.leMax) return false;
+    }
+    return true;
+  });
+
+  if (state.sort !== 'default') {
+    matchingPins = matchingPins.slice().sort((a,b) => {
+      if (state.sort==='price_desc') return b.max_price - a.max_price;
+      if (state.sort==='price_asc') return a.min_price - b.min_price;
+      if (state.sort==='le_asc') {
+        const la = parseInt(a.le_count,10), lb = parseInt(b.le_count,10);
+        return (isNaN(la)?Infinity:la) - (isNaN(lb)?Infinity:lb);
+      }
+      if (state.sort==='rarity') return (RARITY_ORDER[a.rarity]??9) - (RARITY_ORDER[b.rarity]??9);
+      if (state.sort==='az') return a.title.localeCompare(b.title);
+      return 0;
+    });
+  } else {
+    matchingPins = matchingPins.slice().sort((a,b) => b.count - a.count);
+  }
+
+  const totalPages = Math.max(1, Math.ceil(matchingPins.length / state.perPage));
+  if (state.page > totalPages) state.page = totalPages;
+  if (state.page < 1) state.page = 1;
+  const start = (state.page - 1) * state.perPage;
+  const pagePins = matchingPins.slice(start, start + state.perPage);
+
+  document.getElementById('pinGrid').innerHTML = pagePins.map(p => cardHtml(p, allPins.indexOf(p))).join('');
+  attachCardEvents();
+
+  document.getElementById('resultCount').textContent =
+    `${matchingPins.length.toLocaleString()}件中 ${matchingPins.length===0?0:start+1}–${Math.min(start+state.perPage, matchingPins.length)}件を表示 / 全${allPins.length.toLocaleString()}件`;
+  document.getElementById('emptyMsg').style.display = matchingPins.length === 0 ? 'block' : 'none';
+  renderPageNumbers(state.page, totalPages);
+  document.getElementById('pageSummary').textContent = `Page ${state.page} of ${totalPages.toLocaleString()} — ${matchingPins.length.toLocaleString()} Results`;
+}
+
+function goToPage(n) {
+  state.page = n;
+  applyFilters();
+  document.querySelector('.filter-bar').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function renderPageNumbers(current, total) {
+  const container = document.getElementById('pageNumbers');
+  const items = [];
+  if (current > 1) items.push({label:'‹', page:current-1});
+  const pages = new Set([1, total]);
+  for (let i=current-2; i<=current+2; i++) if (i>=1 && i<=total) pages.add(i);
+  const sorted = Array.from(pages).sort((a,b)=>a-b);
+  let prev = null;
+  for (const p of sorted) {
+    if (prev !== null && p - prev > 1) items.push({ellipsis:true});
+    items.push({label:p.toLocaleString(), page:p, current:p===current});
+    prev = p;
+  }
+  if (current < total) items.push({label:'›', page:current+1});
+  container.innerHTML = items.map(it => it.ellipsis
+    ? '<span class="page-num-btn ellipsis">…</span>'
+    : `<button class="page-num-btn ${it.current?'current':''}" data-page="${it.page}">${it.label}</button>`
+  ).join('');
+  container.querySelectorAll('button[data-page]').forEach(btn => {
+    btn.addEventListener('click', () => goToPage(parseInt(btn.dataset.page,10)));
+  });
+}
+
+function refreshCardState(pinId) {
+  document.querySelectorAll('.pin-card').forEach(card => {
+    const idSpan = card.querySelector('.pin-id-small');
+    if (!idSpan || idSpan.dataset.pinId !== pinId) return;
+    const entry = collection[pinId] || {};
+    const favBtn = card.querySelector('.corner-fav-btn');
+    const isoBtn = card.querySelector('.iso-btn');
+    const ownBtn = card.querySelector('.own-btn');
+    if (favBtn) { favBtn.classList.toggle('active', !!entry.favorite); favBtn.textContent = entry.favorite?'★':'☆'; }
+    if (isoBtn) {
+      let label = '🔍 探してる';
+      if (entry.status==='trade') label += ' <span class="status-tag status-trade">トレード可</span>';
+      if (entry.status==='grail') label += ' <span class="status-tag status-grail">お宝</span>';
+      isoBtn.innerHTML = label;
+      isoBtn.classList.toggle('active', ['iso','trade','grail'].includes(entry.status));
+    }
+    if (ownBtn) ownBtn.classList.toggle('active', entry.status==='own');
+  });
+}
+
+function attachCardEvents() {
+  document.querySelectorAll('.pin-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const p = allPins[parseInt(card.dataset.idx,10)];
+      openModal(p);
+    });
+  });
+  document.querySelectorAll('.tag[data-filter-type]').forEach(tag => {
+    tag.addEventListener('click', (e) => {
+      e.stopPropagation();
+      jumpToFilter(tag.dataset.filterType, tag.dataset.filterValue);
+    });
+  });
+  document.querySelectorAll('.corner-fav-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const pid = btn.dataset.pinId;
+      if (!collection[pid]) collection[pid] = {};
+      collection[pid].favorite = !collection[pid].favorite;
+      saveCollection(collection);
+      refreshCardState(pid);
+    });
+  });
+  document.querySelectorAll('.own-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setStatus(btn.dataset.pinId, 'own');
+    });
+  });
+  document.querySelectorAll('.iso-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setStatus(btn.dataset.pinId, 'iso');
+    });
+  });
+  document.querySelectorAll('.iso-caret').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const pid = btn.dataset.pinId;
+      const alreadyOpen = sharedDropdown.classList.contains('open') && sharedDropdown.dataset.pid === pid;
+      sharedDropdown.classList.remove('open');
+      if (alreadyOpen) return;
+      const rect = btn.getBoundingClientRect();
+      const w = 220;
+      let left = Math.max(8, Math.min(rect.right - w, window.innerWidth - w - 8));
+      let top = rect.bottom + 6;
+      if (top + 220 > window.innerHeight) top = rect.top - 226;
+      sharedDropdown.style.left = left + 'px';
+      sharedDropdown.style.top = top + 'px';
+      sharedDropdown.dataset.pid = pid;
+      sharedDropdown.classList.add('open');
+    });
+  });
+  document.querySelectorAll('.pin-id-small').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(el.dataset.pinId).then(() => {
+        const orig = el.textContent;
+        el.textContent = '✓ Copied!';
+        setTimeout(() => { el.textContent = orig; }, 1000);
+      }).catch(()=>{});
+    });
+  });
+}
+
+function setStatus(pid, status) {
+  if (!collection[pid]) collection[pid] = {};
+  collection[pid].status = (collection[pid].status === status) ? '' : status;
+  saveCollection(collection);
+  refreshCardState(pid);
+}
+
+const sharedDropdown = document.getElementById('sharedStatusDropdown');
+sharedDropdown.querySelectorAll('.status-option').forEach(opt => {
+  opt.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const pid = sharedDropdown.dataset.pid;
+    if (!pid) return;
+    if (!collection[pid]) collection[pid] = {};
+    collection[pid].status = opt.dataset.status;
+    saveCollection(collection);
+    refreshCardState(pid);
+    sharedDropdown.classList.remove('open');
+  });
+});
+document.addEventListener('click', () => sharedDropdown.classList.remove('open'));
+window.addEventListener('scroll', () => sharedDropdown.classList.remove('open'), {passive:true});
+sharedDropdown.addEventListener('click', e => e.stopPropagation());
+
+function jumpToFilter(type, value) {
+  state.page = 1;
+  if (type==='park') { state.park=value; document.getElementById('parkSelect').value=value; }
+  else if (type==='collection') { state.collection=value; document.getElementById('collectionSelect').value=value; }
+  else if (type==='edition') { state.edition=value; document.getElementById('editionSelect').value=value; }
+  else if (type==='status') { state.status=value; document.getElementById('statusSelect').value=value; }
+  else if (type==='le') { state.leMax=parseInt(value,10); document.getElementById('leMax').value=value; }
+  applyFilters();
+  document.querySelector('.filter-bar').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function openModal(p) {
+  document.getElementById('modalImg').src = p.image_url;
+  let officialHtml = '';
+  if (p.official) {
+    officialHtml = `<div style="margin-top:16px;padding:14px;background:rgba(232,169,201,0.15);border-radius:10px;border:1px solid rgba(232,169,201,0.4);">
+      <div style="font-weight:700;font-size:13px;color:#8a2a5c;margin-bottom:8px;">✓ 公式シリーズ情報</div>
+      <div class="detail-row"><span>シリーズ名</span><span>${esc(p.official.series_name)}</span></div>
+      <div class="detail-row"><span>発売元</span><span>${esc(p.official.origin)}</span></div>
+      <div class="detail-row"><span>エディション種別</span><span>${esc(p.official.edition_type)}</span></div>
+      ${p.official.edition_count ? `<div class="detail-row"><span>限定数</span><span>${p.official.edition_count}</span></div>` : ''}
+      ${p.official.original_price ? `<div class="detail-row"><span>発売時価格</span><span>$${p.official.original_price}</span></div>` : ''}
+    </div>`;
+  }
+  document.getElementById('modalBody').innerHTML = `
+    <div class="mono" style="font-size:12px;color:var(--gold);font-weight:700;margin-bottom:6px;">${p.pin_id}</div>
+    <h2>${esc(p.title)}</h2>
+    <div class="detail-row"><span>パーク</span><span>${PARK_LABELS_JA_JS[p.park] || p.park}</span></div>
+    <div class="detail-row"><span>エディション種別</span><span>${EDITION_LABELS_JA_JS[p.edition_type] || p.edition_type || '—'}</span></div>
+    <div class="detail-row"><span>価格帯</span><span>$${p.min_price.toFixed(2)} – $${p.max_price.toFixed(2)}</span></div>
+    <div class="detail-row"><span>平均価格</span><span>$${p.avg_price.toFixed(2)}</span></div>
+    <div class="detail-row"><span>LE数</span><span>${p.le_count||'—'}</span></div>
+    <div class="detail-row"><span>キャラクター</span><span>${esc(p.characters)||'—'}</span></div>
+    <div class="detail-row"><span>シリーズ</span><span>${esc(p.series)||'—'}</span></div>
+    <div class="detail-row"><span>出品件数</span><span>${p.count}</span></div>
+    ${officialHtml}
+    <a class="modal-link" href="${p.url}" target="_blank">eBayで見る →</a>
+  `;
+  document.getElementById('overlay').classList.add('open');
+}
+function closeModal() { document.getElementById('overlay').classList.remove('open'); }
+document.getElementById('overlay').addEventListener('click', e => { if (e.target.id==='overlay') closeModal(); });
+
+document.getElementById('search').addEventListener('input', e => { state.query=e.target.value.toLowerCase(); state.page=1; applyFilters(); });
+document.getElementById('parkSelect').addEventListener('change', e => { state.park=e.target.value; state.page=1; applyFilters(); });
+document.getElementById('collectionSelect').addEventListener('change', e => { state.collection=e.target.value; state.page=1; applyFilters(); });
+document.getElementById('editionSelect').addEventListener('change', e => { state.edition=e.target.value; state.page=1; applyFilters(); });
+document.getElementById('statusSelect').addEventListener('change', e => { state.status=e.target.value; state.page=1; applyFilters(); });
+document.getElementById('seriesSelect').addEventListener('change', e => { state.series=e.target.value; state.page=1; applyFilters(); });
+document.getElementById('characterSelect').addEventListener('change', e => { state.character=e.target.value; state.page=1; applyFilters(); });
+document.getElementById('leMax').addEventListener('input', e => { state.leMax = e.target.value===''?null:parseInt(e.target.value,10); state.page=1; applyFilters(); });
+document.getElementById('sortSelect').addEventListener('change', e => { state.sort=e.target.value; state.page=1; applyFilters(); });
+document.getElementById('perPage').addEventListener('change', e => { state.perPage=parseInt(e.target.value,10); state.page=1; applyFilters(); });
+document.getElementById('favOnlyToggle').addEventListener('change', e => { state.favOnly=e.target.checked; state.page=1; applyFilters(); });
+document.getElementById('jumpBtn').addEventListener('click', () => {
+  const v = parseInt(document.getElementById('jumpPage').value,10);
+  if (!isNaN(v) && v>=1) goToPage(v);
+});
+document.getElementById('jumpPage').addEventListener('keydown', e => { if (e.key==='Enter') document.getElementById('jumpBtn').click(); });
+document.querySelectorAll('[data-toggle-status]').forEach(cb => {
+  cb.addEventListener('change', e => {
+    const s = e.target.dataset.toggleStatus;
+    if (e.target.checked) state.hiddenStatuses.delete(s); else state.hiddenStatuses.add(s);
+    state.page=1; applyFilters();
+  });
+});
+document.getElementById('colorSelect').addEventListener('change', e => {
+  state.color = e.target.value; state.page=1;
+  const theme = COLOR_THEMES[state.color];
+  if (theme) { document.body.style.background = theme.bg; document.documentElement.style.setProperty('--gold', theme.accent); }
+  else { document.body.style.background=''; document.documentElement.style.setProperty('--gold', '#E8A9C9'); }
+  applyFilters();
+});
+
+// データ読み込み
+fetch('pins_data.json')
+  .then(r => r.json())
+  .then(data => {
+    allPins = data;
+    document.getElementById('loadingMsg').style.display = 'none';
+    const totalListings = allPins.reduce((s,p)=>s+p.count,0);
+    const parksCovered = new Set(allPins.map(p=>p.park)).size;
+    document.getElementById('statStrip').innerHTML = `
+      <div class="stat"><div class="num mono">${allPins.length.toLocaleString()}</div><div class="label">Unique Pins</div></div>
+      <div class="stat"><div class="num mono">${totalListings.toLocaleString()}</div><div class="label">Listings Tracked</div></div>
+      <div class="stat"><div class="num mono">${parksCovered}</div><div class="label">Parks / Events</div></div>
+    `;
+    applyFilters();
+  })
+  .catch(err => {
+    document.getElementById('loadingMsg').textContent = 'データの読み込みに失敗しました。しばらくしてから再度お試しください。';
+    console.error(err);
+  });
+</script>
+</body>
+</html>
