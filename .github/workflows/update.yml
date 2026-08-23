@@ -23,7 +23,7 @@ jobs:
           python-version: '3.12'
 
       - name: 必要なライブラリをインストール
-        run: pip install requests
+        run: pip install requests Pillow
 
       - name: eBayからデータ取得・精査
         env:
@@ -41,6 +41,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/pins_data.json data/top_characters.json docs/index.html docs/.nojekyll
+          git add data/pins_data.json data/top_characters.json docs/index.html docs/.nojekyll docs/images
           git diff --staged --quiet || git commit -m "自動更新: $(date -u +'%Y-%m-%d %H:%M UTC')"
           git push
