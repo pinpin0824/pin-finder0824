@@ -1,4 +1,71 @@
-<!DOCTYPE html>
+"""
+Pin Registry サイトを生成する(軽量版)。
+
+これまでの「静的HTML1ファイルに全カードを埋め込む」方式は、
+ファイルサイズが肥大化しGitHubの25MB制限に抵触したため、
+以下の方式に変更した:
+
+1. データは docs/pins_data.json という別ファイルに保存
+2. docs/index.html は「枠組み(HTML/CSS/JS)」だけの軽量ファイル
+3. ページを開いたときに、JSが pins_data.json を読み込んでカードを描画する
+"""
+
+import json
+import os
+import shutil
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(SCRIPT_DIR, "..", "data")
+DOCS_DIR = os.path.join(SCRIPT_DIR, "..", "docs")
+os.makedirs(DOCS_DIR, exist_ok=True)
+
+with open(os.path.join(DATA_DIR, "pins_data.json"), encoding="utf-8") as f:
+    pins = json.load(f)
+
+with open(os.path.join(DATA_DIR, "top_characters.json"), encoding="utf-8") as f:
+    TOP_CHARACTERS = json.load(f)
+
+pins.sort(key=lambda p: p["count"], reverse=True)
+
+PARKS = ["All", "D23 Expo", "Walt Disney World", "Disneyland Resort", "Disney Parks (Shared/Unspecified)",
+         "Disney Store / Online Exclusive", "Tokyo Disneyland", "Disneyland Paris",
+         "Hong Kong Disneyland", "Shanghai Disneyland", "Convention Exclusive (SDCC等)", "Other / Unknown"]
+COLLECTIONS = ["All", "Mickey & Friends", "Princesses", "Star Wars", "Marvel", "Pixar", "Villains",
+               "Attractions", "Winnie the Pooh & Friends", "Alice in Wonderland", "Muppets",
+               "Peter Pan / Neverland", "Lilo & Stitch", "The Lion King", "Nightmare Before Christmas",
+               "Aristocats", "Dumbo", "Hercules", "Big Hero 6", "Zootopia", "Kingdom Hearts", "Tarzan",
+               "Classic Disney Animation", "Modern Disney Animation", "Other"]
+EDITION_TYPES = ["All", "Limited Edition (LE)", "Limited Release (LR)", "Open Edition (OE)",
+                 "Mystery / Chaser", "Cast Member Trading", "Unknown"]
+STATUS_LEVELS = ["All", "Official", "Likely Official", "Unverified", "Fantasy Pin",
+                 "Non-Tradeable", "Unofficial", "Not a Pin"]
+COLOR_TAGS = ["All", "Red", "Pink", "Blue", "Aqua", "Green", "Yellow", "Orange",
+              "Purple", "Brown", "Black", "White", "Multi"]
+SERIES_KEYWORDS = ["All", "D23", "MOG", "WDI", "Anniversary", "Cast Exclusive", "Hidden Mickey",
+                   "Imagineering", "Annual Passholder", "Artist Series", "Mystery", "Chaser",
+                   "Jumbo", "Halloween", "Holiday", "Windows of Attraction", "Enchanted Doors",
+                   "Magical Theater", "Digitize Disney", "Premier Collection", "Game Changers",
+                   "Play Along", "Character Carousel", "Diamond Celebration", "50th Anniversary",
+                   "60th Anniversary"]
+
+total = len(pins)
+
+
+def opts(values):
+    return "".join(f'<option value="{v}">{v}</option>' for v in values)
+
+
+park_options = opts(PARKS)
+collection_options = opts(COLLECTIONS)
+edition_options = opts(EDITION_TYPES)
+status_options = opts(STATUS_LEVELS)
+series_options = opts(SERIES_KEYWORDS)
+color_options = opts(COLOR_TAGS)
+character_options = '<option value="All">All</option>' + "".join(
+    f'<option value="{c}">{c}</option>' for c in TOP_CHARACTERS
+)
+
+html_doc = r"""<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -174,13 +241,13 @@
 
 <div class="filter-bar">
   <div class="chip-row">
-    <div class="chip-group"><div class="chip-group-label">Park</div><select class="filter-select" id="parkSelect"><option value="All">All</option><option value="D23 Expo">D23 Expo</option><option value="Walt Disney World">Walt Disney World</option><option value="Disneyland Resort">Disneyland Resort</option><option value="Disney Parks (Shared/Unspecified)">Disney Parks (Shared/Unspecified)</option><option value="Disney Store / Online Exclusive">Disney Store / Online Exclusive</option><option value="Tokyo Disneyland">Tokyo Disneyland</option><option value="Disneyland Paris">Disneyland Paris</option><option value="Hong Kong Disneyland">Hong Kong Disneyland</option><option value="Shanghai Disneyland">Shanghai Disneyland</option><option value="Convention Exclusive (SDCC等)">Convention Exclusive (SDCC等)</option><option value="Other / Unknown">Other / Unknown</option></select></div>
-    <div class="chip-group"><div class="chip-group-label">Collection</div><select class="filter-select" id="collectionSelect"><option value="All">All</option><option value="Mickey & Friends">Mickey & Friends</option><option value="Princesses">Princesses</option><option value="Star Wars">Star Wars</option><option value="Marvel">Marvel</option><option value="Pixar">Pixar</option><option value="Villains">Villains</option><option value="Attractions">Attractions</option><option value="Winnie the Pooh & Friends">Winnie the Pooh & Friends</option><option value="Alice in Wonderland">Alice in Wonderland</option><option value="Muppets">Muppets</option><option value="Peter Pan / Neverland">Peter Pan / Neverland</option><option value="Lilo & Stitch">Lilo & Stitch</option><option value="The Lion King">The Lion King</option><option value="Nightmare Before Christmas">Nightmare Before Christmas</option><option value="Aristocats">Aristocats</option><option value="Dumbo">Dumbo</option><option value="Hercules">Hercules</option><option value="Big Hero 6">Big Hero 6</option><option value="Zootopia">Zootopia</option><option value="Kingdom Hearts">Kingdom Hearts</option><option value="Tarzan">Tarzan</option><option value="Classic Disney Animation">Classic Disney Animation</option><option value="Modern Disney Animation">Modern Disney Animation</option><option value="Other">Other</option></select></div>
-    <div class="chip-group"><div class="chip-group-label">Edition Type</div><select class="filter-select" id="editionSelect"><option value="All">All</option><option value="Limited Edition (LE)">Limited Edition (LE)</option><option value="Limited Release (LR)">Limited Release (LR)</option><option value="Open Edition (OE)">Open Edition (OE)</option><option value="Mystery / Chaser">Mystery / Chaser</option><option value="Cast Member Trading">Cast Member Trading</option><option value="Unknown">Unknown</option></select></div>
-    <div class="chip-group"><div class="chip-group-label">Status</div><select class="filter-select" id="statusSelect"><option value="All">All</option><option value="Official">Official</option><option value="Likely Official">Likely Official</option><option value="Unverified">Unverified</option><option value="Fantasy Pin">Fantasy Pin</option><option value="Non-Tradeable">Non-Tradeable</option><option value="Unofficial">Unofficial</option><option value="Not a Pin">Not a Pin</option></select></div>
-    <div class="chip-group"><div class="chip-group-label">Series</div><select class="filter-select" id="seriesSelect"><option value="All">All</option><option value="D23">D23</option><option value="MOG">MOG</option><option value="WDI">WDI</option><option value="Anniversary">Anniversary</option><option value="Cast Exclusive">Cast Exclusive</option><option value="Hidden Mickey">Hidden Mickey</option><option value="Imagineering">Imagineering</option><option value="Annual Passholder">Annual Passholder</option><option value="Artist Series">Artist Series</option><option value="Mystery">Mystery</option><option value="Chaser">Chaser</option><option value="Jumbo">Jumbo</option><option value="Halloween">Halloween</option><option value="Holiday">Holiday</option><option value="Windows of Attraction">Windows of Attraction</option><option value="Enchanted Doors">Enchanted Doors</option><option value="Magical Theater">Magical Theater</option><option value="Digitize Disney">Digitize Disney</option><option value="Premier Collection">Premier Collection</option><option value="Game Changers">Game Changers</option><option value="Play Along">Play Along</option><option value="Character Carousel">Character Carousel</option><option value="Diamond Celebration">Diamond Celebration</option><option value="50th Anniversary">50th Anniversary</option><option value="60th Anniversary">60th Anniversary</option></select></div>
-    <div class="chip-group"><div class="chip-group-label">Color</div><select class="filter-select" id="colorSelect"><option value="All">All</option><option value="Red">Red</option><option value="Pink">Pink</option><option value="Blue">Blue</option><option value="Aqua">Aqua</option><option value="Green">Green</option><option value="Yellow">Yellow</option><option value="Orange">Orange</option><option value="Purple">Purple</option><option value="Brown">Brown</option><option value="Black">Black</option><option value="White">White</option><option value="Multi">Multi</option></select></div>
-    <div class="chip-group"><div class="chip-group-label">Character</div><select class="filter-select" id="characterSelect"><option value="All">All</option><option value="Ahsoka">Ahsoka</option><option value="Aladdin">Aladdin</option><option value="Alberto">Alberto</option><option value="Alice">Alice</option><option value="Angel">Angel</option><option value="Anna">Anna</option><option value="Ariel">Ariel</option><option value="Aurora">Aurora</option><option value="BB-8">BB-8</option><option value="Baloo">Baloo</option><option value="Bambi">Bambi</option><option value="Baymax">Baymax</option><option value="Beast">Beast</option><option value="Belle">Belle</option><option value="Big Al">Big Al</option><option value="Black Panther">Black Panther</option><option value="Black Widow">Black Widow</option><option value="Boba Fett">Boba Fett</option><option value="Boo">Boo</option><option value="Buzz Lightyear">Buzz Lightyear</option><option value="C-3PO">C-3PO</option><option value="Captain America">Captain America</option><option value="Captain Hook">Captain Hook</option><option value="Carl Fredricksen">Carl Fredricksen</option><option value="Chernabog">Chernabog</option><option value="Cheshire Cat">Cheshire Cat</option><option value="Chewbacca">Chewbacca</option><option value="Chip">Chip</option><option value="Cinderella">Cinderella</option><option value="Cruella de Vil">Cruella de Vil</option><option value="Crush">Crush</option><option value="Daisy Duck">Daisy Duck</option><option value="Dale">Dale</option><option value="Dante">Dante</option><option value="Darth Vader">Darth Vader</option><option value="Dewey">Dewey</option><option value="Disgust">Disgust</option><option value="Doctor Strange">Doctor Strange</option><option value="Donald Duck">Donald Duck</option><option value="Dory">Dory</option><option value="Dr. Facilier">Dr. Facilier</option><option value="Duchess">Duchess</option><option value="Duffy">Duffy</option><option value="Dumbo">Dumbo</option><option value="EVE">EVE</option><option value="Eeyore">Eeyore</option><option value="Elsa">Elsa</option><option value="Emile">Emile</option><option value="Emperor Zurg">Emperor Zurg</option><option value="Esmeralda">Esmeralda</option><option value="Evil Queen">Evil Queen</option><option value="Fairy Godmother">Fairy Godmother</option><option value="Figaro">Figaro</option><option value="Figment">Figment</option><option value="Finn">Finn</option><option value="Flounder">Flounder</option><option value="Flynn Rider">Flynn Rider</option><option value="Fozzie Bear">Fozzie Bear</option><option value="Gaston">Gaston</option><option value="Gelatoni">Gelatoni</option><option value="Genie">Genie</option><option value="Gonzo">Gonzo</option><option value="Goofy">Goofy</option><option value="Grogu">Grogu</option><option value="Groot">Groot</option><option value="Gus (Cinderella)">Gus (Cinderella)</option><option value="Hades">Hades</option><option value="Hamm">Hamm</option><option value="Han Solo">Han Solo</option><option value="Hercules">Hercules</option><option value="Hiro Hamada">Hiro Hamada</option><option value="Huey">Huey</option><option value="Hulk">Hulk</option><option value="Iago">Iago</option><option value="Iron Man">Iron Man</option><option value="Jack Skellington">Jack Skellington</option><option value="Jafar">Jafar</option><option value="Jaq">Jaq</option><option value="Jasmine">Jasmine</option><option value="Jessie">Jessie</option><option value="Jiminy Cricket">Jiminy Cricket</option><option value="John Smith">John Smith</option><option value="Joy">Joy</option><option value="Judy Hopps">Judy Hopps</option><option value="Kaa">Kaa</option><option value="Kermit the Frog">Kermit the Frog</option><option value="Kristoff">Kristoff</option><option value="Kronk">Kronk</option><option value="Kuzco">Kuzco</option><option value="Kylo Ren">Kylo Ren</option><option value="Loki">Loki</option><option value="Louie">Louie</option><option value="Luca">Luca</option><option value="Luke Skywalker">Luke Skywalker</option><option value="Mad Hatter">Mad Hatter</option><option value="Maleficent">Maleficent</option><option value="Marie">Marie</option><option value="Maui">Maui</option><option value="Meeko">Meeko</option><option value="Megara">Megara</option><option value="Merida">Merida</option><option value="Mickey Mouse">Mickey Mouse</option><option value="Miguel">Miguel</option><option value="Mike Wazowski">Mike Wazowski</option><option value="Minnie Mouse">Minnie Mouse</option><option value="Mirabel">Mirabel</option><option value="Miss Piggy">Miss Piggy</option><option value="Moana">Moana</option><option value="Mowgli">Mowgli</option><option value="Mufasa">Mufasa</option><option value="Mulan">Mulan</option><option value="Mushu">Mushu</option><option value="Nala">Nala</option><option value="Naveen">Naveen</option><option value="Nemo">Nemo</option><option value="Nick Wilde">Nick Wilde</option><option value="Olaf">Olaf</option><option value="Oogie Boogie">Oogie Boogie</option><option value="Orange Bird">Orange Bird</option><option value="Pegasus">Pegasus</option><option value="Peter Pan">Peter Pan</option><option value="Piglet">Piglet</option><option value="Pinocchio">Pinocchio</option><option value="Pluto">Pluto</option><option value="Pocahontas">Pocahontas</option><option value="Prince Eric">Prince Eric</option><option value="Princess Leia">Princess Leia</option><option value="Pumbaa">Pumbaa</option><option value="Queen of Hearts">Queen of Hearts</option><option value="R2-D2">R2-D2</option><option value="Rafiki">Rafiki</option><option value="Randall">Randall</option><option value="Rapunzel">Rapunzel</option><option value="Remy">Remy</option><option value="Rex (Toy Story)">Rex (Toy Story)</option><option value="Robin Hood">Robin Hood</option><option value="Roz">Roz</option><option value="Russell (Up)">Russell (Up)</option><option value="Sadness">Sadness</option><option value="Sally">Sally</option><option value="Scar">Scar</option><option value="Scrump">Scrump</option><option value="Simba">Simba</option><option value="Snow White">Snow White</option><option value="Spider-Man">Spider-Man</option><option value="StellaLou">StellaLou</option><option value="Stitch">Stitch</option><option value="Stormtrooper">Stormtrooper</option><option value="Sulley">Sulley</option><option value="Sven">Sven</option><option value="Tarzan">Tarzan</option><option value="Terk">Terk</option><option value="The Mandalorian">The Mandalorian</option><option value="Thor">Thor</option><option value="Thumper">Thumper</option><option value="Tiana">Tiana</option><option value="Tigger">Tigger</option><option value="Timon">Timon</option><option value="Tinker Bell">Tinker Bell</option><option value="Ursula">Ursula</option><option value="Vanellope">Vanellope</option><option value="Venom">Venom</option><option value="Violet Parr">Violet Parr</option><option value="WALL-E">WALL-E</option><option value="Wendy">Wendy</option><option value="White Rabbit">White Rabbit</option><option value="Winnie the Pooh">Winnie the Pooh</option><option value="Woody">Woody</option><option value="Yoda">Yoda</option><option value="Yzma">Yzma</option><option value="Zootopia">Zootopia</option></select></div>
+    <div class="chip-group"><div class="chip-group-label">Park</div><select class="filter-select" id="parkSelect">__PARK_OPTIONS__</select></div>
+    <div class="chip-group"><div class="chip-group-label">Collection</div><select class="filter-select" id="collectionSelect">__COLLECTION_OPTIONS__</select></div>
+    <div class="chip-group"><div class="chip-group-label">Edition Type</div><select class="filter-select" id="editionSelect">__EDITION_OPTIONS__</select></div>
+    <div class="chip-group"><div class="chip-group-label">Status</div><select class="filter-select" id="statusSelect">__STATUS_OPTIONS__</select></div>
+    <div class="chip-group"><div class="chip-group-label">Series</div><select class="filter-select" id="seriesSelect">__SERIES_OPTIONS__</select></div>
+    <div class="chip-group"><div class="chip-group-label">Color</div><select class="filter-select" id="colorSelect">__COLOR_OPTIONS__</select></div>
+    <div class="chip-group"><div class="chip-group-label">Character</div><select class="filter-select" id="characterSelect">__CHARACTER_OPTIONS__</select></div>
     <div class="chip-group"><div class="chip-group-label">LE Number (以下)</div><input type="number" id="leMax" placeholder="例: 2500" class="le-input"></div>
   </div>
   <div class="status-toggle-row">
@@ -625,3 +692,32 @@ fetch('pins_data.json')
 </script>
 </body>
 </html>
+"""
+
+html_doc = (html_doc
+    .replace("__PARK_OPTIONS__", park_options)
+    .replace("__COLLECTION_OPTIONS__", collection_options)
+    .replace("__EDITION_OPTIONS__", edition_options)
+    .replace("__STATUS_OPTIONS__", status_options)
+    .replace("__SERIES_OPTIONS__", series_options)
+    .replace("__COLOR_OPTIONS__", color_options)
+    .replace("__CHARACTER_OPTIONS__", character_options)
+)
+
+with open(os.path.join(DOCS_DIR, "index.html"), "w", encoding="utf-8") as f:
+    f.write(html_doc)
+
+shutil.copy(os.path.join(DATA_DIR, "pins_data.json"), os.path.join(DOCS_DIR, "pins_data.json"))
+
+# ヘッダー用のコラージュ写真をコピー(assets/header_photos → docs/images)
+ASSETS_DIR = os.path.join(SCRIPT_DIR, "..", "assets", "header_photos")
+IMAGES_OUT_DIR = os.path.join(DOCS_DIR, "images")
+os.makedirs(IMAGES_OUT_DIR, exist_ok=True)
+if os.path.isdir(ASSETS_DIR):
+    for fname in os.listdir(ASSETS_DIR):
+        shutil.copy(os.path.join(ASSETS_DIR, fname), os.path.join(IMAGES_OUT_DIR, fname))
+    print(f"[OK] ヘッダー写真 {len(os.listdir(ASSETS_DIR))}枚を docs/images/ にコピーしました")
+
+print(f"[OK] 軽量版サイト生成完了: {total}件")
+print(f"[OK] index.html サイズ: {os.path.getsize(os.path.join(DOCS_DIR, 'index.html')) / 1024:.1f} KB")
+print(f"[OK] pins_data.json サイズ: {os.path.getsize(os.path.join(DOCS_DIR, 'pins_data.json')) / 1024 / 1024:.2f} MB")
