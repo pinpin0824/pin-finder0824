@@ -99,7 +99,7 @@ html_doc = r"""<!DOCTYPE html>
   }
   .header-overlay {
     position: absolute; inset: 0; z-index: 1;
-    background: linear-gradient(180deg, rgba(92,79,168,0.82) 0%, rgba(74,63,138,0.90) 60%, rgba(74,63,138,0.96) 100%);
+    background: linear-gradient(180deg, rgba(232,201,109,0.55) 0%, rgba(196,158,70,0.70) 60%, rgba(150,115,40,0.82) 100%);
   }
   .header-inner { max-width: 1100px; margin: 0 auto; position: relative; z-index: 2; }
   .brand-row { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 34px; }
