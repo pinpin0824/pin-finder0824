@@ -1,6 +1,6 @@
-name: Update Pin Registry
+name: Update Pin Registry (Hourly Light)
 
-# 1時間ごとに自動実行 + 手動実行ボタンも有効化
+# 1時間ごとに自動実行(軽量モード) + 手動実行ボタンも有効化
 on:
   schedule:
     - cron: '0 * * * *'
@@ -25,14 +25,17 @@ jobs:
       - name: 必要なライブラリをインストール
         run: pip install requests Pillow
 
-      - name: eBayからデータ取得・精査
+      - name: eBayからデータ取得・精査(軽量モード)
         env:
           EBAY_APP_ID: ${{ secrets.EBAY_APP_ID }}
           EBAY_CERT_ID: ${{ secrets.EBAY_CERT_ID }}
-        run: python scripts/fetch_and_process.py
+        run: python scripts/fetch_and_process.py --light
 
-      - name: サイトを再生成
+      - name: サイトを再生成(Pin Finder / 今買えるピン)
         run: python scripts/build_static_site.py
+
+      - name: サイトを再生成(累積データベース)
+        run: python scripts/build_database_site.py
 
       - name: Jekyllを無効化(.nojekyllを配置)
         run: touch docs/.nojekyll
@@ -41,6 +44,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/pins_data.json data/top_characters.json docs/index.html docs/.nojekyll docs/images
+          git add data/pins_data.json data/top_characters.json data/archive_data.json docs/index.html docs/.nojekyll docs/images docs/database
           git diff --staged --quiet || git commit -m "自動更新: $(date -u +'%Y-%m-%d %H:%M UTC')"
           git push

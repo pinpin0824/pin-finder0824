@@ -35,7 +35,7 @@ COLLECTIONS = ["All", "Mickey & Friends", "Princesses", "Star Wars", "Marvel", "
                "Peter Pan / Neverland", "Lilo & Stitch", "The Lion King", "Nightmare Before Christmas",
                "Aristocats", "Dumbo", "Hercules", "Big Hero 6", "Zootopia", "Kingdom Hearts", "Tarzan",
                "Classic Disney Animation", "Modern Disney Animation", "Other"]
-EDITION_TYPES = ["All", "Limited Edition (LE)", "Limited Release (LR)", "Open Edition (OE)",
+EDITION_TYPES = ["All", "Limited Edition (LE)", "LE (Count Unknown)", "Limited Release (LR)", "Open Edition (OE)",
                  "Mystery / Chaser", "Cast Member Trading", "Unknown"]
 STATUS_LEVELS = ["All", "Official", "Likely Official", "Unverified", "Fantasy Pin",
                  "Non-Tradeable", "Unofficial", "Not a Pin"]
@@ -71,7 +71,8 @@ COLLECTION_LABELS_JA = {
     "Modern Disney Animation": "近年の作品", "Other": "その他",
 }
 EDITION_LABELS_JA = {
-    "All": "すべて", "Limited Edition (LE)": "数量限定(LE)", "Limited Release (LR)": "期間限定(LR)",
+    "All": "すべて", "Limited Edition (LE)": "数量限定(LE・数値確認済み)",
+    "LE (Count Unknown)": "数量限定(LE・数値不明)", "Limited Release (LR)": "期間限定(LR)",
     "Open Edition (OE)": "通常販売(OE)", "Mystery / Chaser": "ミステリー/チェイサー",
     "Cast Member Trading": "キャスト用トレーディング", "Unknown": "不明",
 }
@@ -152,14 +153,22 @@ CHARACTER_LABELS_JA = {
     "Tarzan": "ターザン", "Sven": "スヴェン", "Kristoff": "クリストフ", "Prince Eric": "エリック王子",
     "Rex (Toy Story)": "レックス", "Hamm": "ハム",
 }
+def format_character_label(c):
+    ja = CHARACTER_LABELS_JA.get(c)
+    return f"{ja} - {c}" if ja else c
+
+
 character_options = '<option value="All">すべて</option>' + "".join(
-    f'<option value="{c}">{CHARACTER_LABELS_JA.get(c, c)}</option>' for c in TOP_CHARACTERS
+    f'<option value="{c}">{format_character_label(c)}</option>' for c in TOP_CHARACTERS
 )
 
 html_doc = r"""<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pin Finder — Disney Collectible Pin Database</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -169,10 +178,18 @@ html_doc = r"""<!DOCTYPE html>
     --navy: #7B6FC4; --navy-deep: #5C4FA8; --gold: #E8A9C9; --gold-light: #F3C9DE;
     --red: #E0687A; --teal: #5CC7B8; --cream: #FFF8FB; --cream-dim: #FBEFF5;
     --ink: #4A3F5C; --ink-soft: #8B7F9E; --line: #F0DCE8;
+    --mint: #A8E6CF; --sky: #A9D6F5; --butter: #FFE7A0;
+    --bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
-  body { margin: 0; background: var(--cream); color: var(--ink); font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+  body {
+    margin: 0; color: var(--ink); font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased;
+    background-color: var(--cream);
+    background-image:
+      url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22520%22%20height%3D%22520%22%20viewBox%3D%220%200%20520%20520%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3CradialGradient%20id%3D%22balloonPink%22%20cx%3D%2235%25%22%20cy%3D%2228%25%22%20r%3D%2275%25%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%23FFE3F0%22/%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%23F0B8D6%22/%3E%0A%20%20%20%20%3C/radialGradient%3E%0A%20%20%20%20%3CradialGradient%20id%3D%22balloonBlue%22%20cx%3D%2235%25%22%20cy%3D%2228%25%22%20r%3D%2275%25%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%23E3F3FF%22/%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%23B8D8F0%22/%3E%0A%20%20%20%20%3C/radialGradient%3E%0A%20%20%20%20%3CradialGradient%20id%3D%22balloonGold%22%20cx%3D%2235%25%22%20cy%3D%2228%25%22%20r%3D%2275%25%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%23FFF6DC%22/%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%23F0DBA0%22/%3E%0A%20%20%20%20%3C/radialGradient%3E%0A%20%20%20%20%3CradialGradient%20id%3D%22balloonMint%22%20cx%3D%2235%25%22%20cy%3D%2228%25%22%20r%3D%2275%25%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%23E4FBF1%22/%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%23B8E8D0%22/%3E%0A%20%20%20%20%3C/radialGradient%3E%0A%20%20%3C/defs%3E%0A%0A%20%20%3Cg%20opacity%3D%220.4%22%3E%0A%20%20%20%20%3Cellipse%20cx%3D%2270%22%20cy%3D%2260%22%20rx%3D%2222%22%20ry%3D%2227%22%20fill%3D%22url%28%23balloonPink%29%22/%3E%0A%20%20%20%20%3Cline%20x1%3D%2270%22%20y1%3D%2287%22%20x2%3D%2266%22%20y2%3D%22110%22%20stroke%3D%22%23D9A8C4%22%20stroke-width%3D%221.5%22/%3E%0A%20%20%20%20%3Cellipse%20cx%3D%22380%22%20cy%3D%2250%22%20rx%3D%2219%22%20ry%3D%2223%22%20fill%3D%22url%28%23balloonBlue%29%22/%3E%0A%20%20%20%20%3Cline%20x1%3D%22380%22%20y1%3D%2273%22%20x2%3D%22377%22%20y2%3D%2293%22%20stroke%3D%22%23A0C4E0%22%20stroke-width%3D%221.5%22/%3E%0A%20%20%20%20%3Cellipse%20cx%3D%22470%22%20cy%3D%22260%22%20rx%3D%2217%22%20ry%3D%2221%22%20fill%3D%22url%28%23balloonMint%29%22/%3E%0A%20%20%20%20%3Cline%20x1%3D%22470%22%20y1%3D%22281%22%20x2%3D%22468%22%20y2%3D%22299%22%20stroke%3D%22%239CD0B4%22%20stroke-width%3D%221.5%22/%3E%0A%20%20%20%20%3Cellipse%20cx%3D%2240%22%20cy%3D%22300%22%20rx%3D%2218%22%20ry%3D%2222%22%20fill%3D%22url%28%23balloonBlue%29%22/%3E%0A%20%20%20%20%3Cline%20x1%3D%2240%22%20y1%3D%22322%22%20x2%3D%2237%22%20y2%3D%22341%22%20stroke%3D%22%23A0C4E0%22%20stroke-width%3D%221.5%22/%3E%0A%20%20%20%20%3Cellipse%20cx%3D%22180%22%20cy%3D%22400%22%20rx%3D%2221%22%20ry%3D%2226%22%20fill%3D%22url%28%23balloonPink%29%22/%3E%0A%20%20%20%20%3Cline%20x1%3D%22180%22%20y1%3D%22426%22%20x2%3D%22176%22%20y2%3D%22448%22%20stroke%3D%22%23D9A8C4%22%20stroke-width%3D%221.5%22/%3E%0A%20%20%20%20%3Cellipse%20cx%3D%22440%22%20cy%3D%22420%22%20rx%3D%2218%22%20ry%3D%2222%22%20fill%3D%22url%28%23balloonGold%29%22/%3E%0A%20%20%20%20%3Cline%20x1%3D%22440%22%20y1%3D%22442%22%20x2%3D%22437%22%20y2%3D%22461%22%20stroke%3D%22%23D4BE84%22%20stroke-width%3D%221.5%22/%3E%0A%20%20%3C/g%3E%0A%0A%20%20%3C%21--%20%E3%81%8B%E3%82%8F%E3%81%84%E3%81%84%E3%81%8A%E5%9F%8E%28%E6%B1%8E%E7%94%A8%E3%82%B7%E3%83%AB%E3%82%A8%E3%83%83%E3%83%88%E3%80%81%E7%89%B9%E5%AE%9A%E4%BD%9C%E5%93%81%E3%82%92%E6%A8%A1%E5%80%A3%E3%81%97%E3%81%AA%E3%81%84%29%20--%3E%0A%20%20%3Cg%20transform%3D%22translate%28150%2C150%29%22%20opacity%3D%220.30%22%20fill%3D%22none%22%20stroke%3D%22%23B49BD8%22%20stroke-width%3D%222.4%22%20stroke-linejoin%3D%22round%22%3E%0A%20%20%20%20%3Crect%20x%3D%220%22%20y%3D%2240%22%20width%3D%2270%22%20height%3D%2238%22%20rx%3D%222%22/%3E%0A%20%20%20%20%3Crect%20x%3D%228%22%20y%3D%2210%22%20width%3D%2216%22%20height%3D%2230%22/%3E%0A%20%20%20%20%3Cpolygon%20points%3D%228%2C10%2016%2C-6%2024%2C10%22/%3E%0A%20%20%20%20%3Crect%20x%3D%2246%22%20y%3D%2210%22%20width%3D%2216%22%20height%3D%2230%22/%3E%0A%20%20%20%20%3Cpolygon%20points%3D%2246%2C10%2054%2C-6%2062%2C10%22/%3E%0A%20%20%20%20%3Crect%20x%3D%2227%22%20y%3D%22-4%22%20width%3D%2216%22%20height%3D%2244%22/%3E%0A%20%20%20%20%3Cpolygon%20points%3D%2227%2C-4%2035%2C-24%2043%2C-4%22/%3E%0A%20%20%20%20%3Cline%20x1%3D%2235%22%20y1%3D%22-24%22%20x2%3D%2235%22%20y2%3D%22-32%22/%3E%0A%20%20%20%20%3Ccircle%20cx%3D%2235%22%20cy%3D%22-34%22%20r%3D%222.4%22%20fill%3D%22%23B49BD8%22/%3E%0A%20%20%20%20%3Crect%20x%3D%2228%22%20y%3D%2258%22%20width%3D%2214%22%20height%3D%2220%22/%3E%0A%20%20%20%20%3Cpath%20d%3D%22M28%2058%20a7%207%200%200%201%2014%200%22/%3E%0A%20%20%3C/g%3E%0A%0A%20%20%3C%21--%20%E3%81%8B%E3%82%8F%E3%81%84%E3%81%84%E8%A6%B3%E8%A6%A7%E8%BB%8A%20--%3E%0A%20%20%3Cg%20transform%3D%22translate%28330%2C300%29%22%20opacity%3D%220.30%22%20fill%3D%22none%22%20stroke%3D%22%238FB8D8%22%20stroke-width%3D%222.4%22%20stroke-linecap%3D%22round%22%3E%0A%20%20%20%20%3Ccircle%20cx%3D%220%22%20cy%3D%220%22%20r%3D%2236%22/%3E%0A%20%20%20%20%3Ccircle%20cx%3D%220%22%20cy%3D%220%22%20r%3D%223%22%20fill%3D%22%238FB8D8%22/%3E%0A%20%20%20%20%3Cline%20x1%3D%220%22%20y1%3D%22-36%22%20x2%3D%220%22%20y2%3D%2236%22/%3E%0A%20%20%20%20%3Cline%20x1%3D%22-36%22%20y1%3D%220%22%20x2%3D%2236%22%20y2%3D%220%22/%3E%0A%20%20%20%20%3Cline%20x1%3D%22-25%22%20y1%3D%22-25%22%20x2%3D%2225%22%20y2%3D%2225%22/%3E%0A%20%20%20%20%3Cline%20x1%3D%22-25%22%20y1%3D%2225%22%20x2%3D%2225%22%20y2%3D%22-25%22/%3E%0A%20%20%20%20%3Ccircle%20cx%3D%220%22%20cy%3D%22-36%22%20r%3D%224%22%20fill%3D%22%238FB8D8%22%20stroke%3D%22none%22/%3E%0A%20%20%20%20%3Ccircle%20cx%3D%220%22%20cy%3D%2236%22%20r%3D%224%22%20fill%3D%22%238FB8D8%22%20stroke%3D%22none%22/%3E%0A%20%20%20%20%3Ccircle%20cx%3D%22-36%22%20cy%3D%220%22%20r%3D%224%22%20fill%3D%22%238FB8D8%22%20stroke%3D%22none%22/%3E%0A%20%20%20%20%3Ccircle%20cx%3D%2236%22%20cy%3D%220%22%20r%3D%224%22%20fill%3D%22%238FB8D8%22%20stroke%3D%22none%22/%3E%0A%20%20%20%20%3Ccircle%20cx%3D%22-25%22%20cy%3D%22-25%22%20r%3D%224%22%20fill%3D%22%238FB8D8%22%20stroke%3D%22none%22/%3E%0A%20%20%20%20%3Ccircle%20cx%3D%2225%22%20cy%3D%2225%22%20r%3D%224%22%20fill%3D%22%238FB8D8%22%20stroke%3D%22none%22/%3E%0A%20%20%20%20%3Ccircle%20cx%3D%22-25%22%20cy%3D%2225%22%20r%3D%224%22%20fill%3D%22%238FB8D8%22%20stroke%3D%22none%22/%3E%0A%20%20%20%20%3Ccircle%20cx%3D%2225%22%20cy%3D%22-25%22%20r%3D%224%22%20fill%3D%22%238FB8D8%22%20stroke%3D%22none%22/%3E%0A%20%20%20%20%3Cline%20x1%3D%220%22%20y1%3D%2236%22%20x2%3D%22-10%22%20y2%3D%2250%22/%3E%0A%20%20%20%20%3Cline%20x1%3D%220%22%20y1%3D%2236%22%20x2%3D%2210%22%20y2%3D%2250%22/%3E%0A%20%20%20%20%3Cline%20x1%3D%22-10%22%20y1%3D%2250%22%20x2%3D%2210%22%20y2%3D%2250%22/%3E%0A%20%20%3C/g%3E%0A%3C/svg%3E");
+    background-repeat: repeat; background-size: 480px 480px; background-attachment: fixed;
+  }
   h1, h2, .display { font-family: 'Baloo 2', sans-serif; letter-spacing: -0.01em; }
   .mono { font-family: 'IBM Plex Mono', monospace; }
   a { color: inherit; text-decoration: none; }
@@ -198,18 +215,26 @@ html_doc = r"""<!DOCTYPE html>
   .brand { font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 10px; color: #ffffff; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; }
   .brand .badge-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--gold); }
   .brand-tag { font-size: 12px; color: rgba(255,255,255,0.85); letter-spacing: 0.08em; text-transform: uppercase; text-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+  .refresh-btn {
+    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.4); color: white;
+    padding: 5px 12px; border-radius: 999px; font-size: 12px; cursor: pointer; font-weight: 600;
+    transition: transform 0.3s var(--bounce), background 0.2s;
+  }
+  .refresh-btn:hover { background: rgba(255,255,255,0.28); transform: scale(1.1) rotate(-8deg); }
   .hero-title { font-size: clamp(22px, 3.6vw, 48px); font-weight: 700; line-height: 1.1; max-width: 100%; margin: 0 0 14px; white-space: nowrap; color: #ffffff; text-shadow: -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000, 0 0 8px rgba(0,0,0,0.5); }
   .hero-sub { font-size: 15px; color: #ffffff; max-width: 560px; margin: 0 0 28px; line-height: 1.6; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 6px rgba(0,0,0,0.4); }
   #search { width: 100%; max-width: 620px; padding: 14px 20px; font-size: 16px; border-radius: 999px; border: none; background: white; color: var(--ink); }
+  .search-note { font-size: 11.5px; color: rgba(255,255,255,0.85); margin: 8px 0 0; max-width: 620px; text-shadow: 0 1px 3px rgba(0,0,0,0.4); }
   .stat-strip { display: flex; gap: 26px; margin-top: 26px; flex-wrap: wrap; }
   .stat .num { font-family: 'Baloo 2', sans-serif; font-size: 24px; color: var(--gold-light); font-weight: 700; }
   .stat .label { font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255,255,255,0.55); }
 
   .filter-bar { max-width: 1100px; margin: -30px auto 0; padding: 0 24px; position: relative; z-index: 2; }
-  .chip-row { background: white; border-radius: 16px; padding: 16px 18px; box-shadow: 0 10px 26px rgba(90,26,110,0.12); display: flex; gap: 18px; flex-wrap: wrap; align-items: center; }
+  .chip-row { background: white; border-radius: 28px; padding: 18px 22px; box-shadow: 0 10px 26px rgba(90,26,110,0.12); display: flex; gap: 18px; flex-wrap: wrap; align-items: center; }
   .chip-group { display: flex; flex-direction: column; gap: 6px; }
   .chip-group-label { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); font-weight: 700; }
-  .filter-select, .le-input { padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: white; font-size: 13px; min-width: 140px; }
+  .filter-select, .le-input { padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: white; font-size: 13px; min-width: 140px; transition: transform 0.25s var(--bounce); }
+  .filter-select:hover, .le-input:hover { transform: scale(1.03); }
   .status-toggle-row { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
   .status-toggle-label { font-size: 11.5px; font-weight: 700; color: var(--ink-soft); }
   .status-toggle { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--ink-soft); cursor: pointer; }
@@ -223,8 +248,18 @@ html_doc = r"""<!DOCTYPE html>
 
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; margin-bottom: 30px; }
 
-  .pin-card { background: #fff; border-radius: 18px; box-shadow: 0 3px 10px rgba(123,111,196,0.10); cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; position: relative; border: 1px solid var(--line); display: flex; flex-direction: column; }
-  .pin-card:hover { transform: translateY(-4px) scale(1.01); box-shadow: 0 12px 26px rgba(123,111,196,0.20); }
+  .pin-card {
+    background: #fff; border-radius: 28px; box-shadow: 0 4px 14px rgba(123,111,196,0.14);
+    cursor: pointer; transition: transform 0.35s var(--bounce), box-shadow 0.35s var(--bounce);
+    position: relative; border: 1px solid var(--line); display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .pin-card::before {
+    content: ""; position: absolute; top: 8px; left: 16px; width: 46%; height: 22px; z-index: 3;
+    background: radial-gradient(ellipse at center, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 70%);
+    border-radius: 50%; pointer-events: none;
+  }
+  .pin-card:hover { transform: translateY(-8px) scale(1.035) rotate(-0.6deg); box-shadow: 0 18px 34px rgba(123,111,196,0.26); }
   .hang-hole { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); width: 36px; height: 22px; z-index: 2; }
   .hh-face { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 24px; height: 14px; border-radius: 50%; background: var(--cream); border: 1px solid #e2dcc8; }
   .hh-ear { position: absolute; top: 0; width: 13px; height: 13px; border-radius: 50%; background: var(--cream); border: 1px solid #e2dcc8; }
@@ -235,7 +270,9 @@ html_doc = r"""<!DOCTYPE html>
   .rarity-uncommon { background: #8fd4c1; color: #0b3d31; }
   .rarity-common { background: #d8d2c2; color: #59523e; }
   .rarity-unknown { background: #e2e2e2; color: #888; }
-  .corner-fav-btn { position: absolute; top: 8px; right: 8px; z-index: 2; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line); background: rgba(255,255,255,0.9); font-size: 14px; cursor: pointer; }
+  .corner-fav-btn { position: absolute; top: 8px; right: 8px; z-index: 4; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line); background: rgba(255,255,255,0.9); font-size: 14px; cursor: pointer; transition: transform 0.3s var(--bounce); }
+  .corner-fav-btn:hover { transform: scale(1.25) rotate(-12deg); }
+  .corner-fav-btn:active { transform: scale(0.85); }
   .corner-fav-btn.active { background: #fff3d6; border-color: var(--gold); color: #b8860b; }
   .fantasy-banner { position: absolute; top: 32px; left: 0; right: 0; z-index: 3; background: linear-gradient(120deg, #a94fd6, #7b2fb0); color: white; text-align: center; font-size: 10px; font-weight: 800; padding: 5px 4px; }
   .pin-img-frame { aspect-ratio: 1/1; background: #f4f1e8; display: flex; align-items: center; justify-content: center; padding: 20px; flex-shrink: 0; }
@@ -243,13 +280,16 @@ html_doc = r"""<!DOCTYPE html>
   .pin-body { padding: 14px 14px 0; flex: 1 1 auto; }
   .pin-title-link { font-size: 14px; font-weight: 700; line-height: 1.35; color: #7b2fb0; height: 38px; overflow: hidden; margin-bottom: 10px; }
   .action-row { display: flex; gap: 8px; margin-bottom: 10px; }
-  .action-btn { border: 1px solid var(--line); background: white; border-radius: 8px; padding: 7px 10px; font-size: 12px; font-weight: 700; color: var(--ink-soft); cursor: pointer; }
+  .action-btn { border: 1px solid var(--line); background: white; border-radius: 999px; padding: 7px 10px; font-size: 12px; font-weight: 700; color: var(--ink-soft); cursor: pointer; transition: transform 0.25s var(--bounce), background 0.2s; }
+  .action-btn:hover { transform: scale(1.06); }
+  .action-btn:active { transform: scale(0.94); }
   .own-btn { flex: 1; }
   .own-btn.active { background: rgba(92,199,184,0.18); border-color: var(--teal); color: #167367; }
   .iso-btn-group { flex: 1; display: flex; position: relative; }
-  .iso-btn { flex: 1; border-radius: 8px 0 0 8px; border-right: none; }
+  .iso-btn { flex: 1; border-radius: 999px 0 0 999px; border-right: none; }
   .iso-btn.active { background: rgba(224,104,122,0.14); border-color: var(--red); color: var(--red); }
-  .iso-caret { border: 1px solid var(--line); border-radius: 0 8px 8px 0; background: white; padding: 7px 9px; font-size: 12px; cursor: pointer; }
+  .iso-caret { border: 1px solid var(--line); border-radius: 0 999px 999px 0; background: white; padding: 7px 9px; font-size: 12px; cursor: pointer; transition: transform 0.25s var(--bounce); }
+  .iso-caret:hover { transform: scale(1.1); }
   .status-dropdown { display: none; position: fixed; z-index: 100; background: white; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 24px rgba(90,26,110,0.18); min-width: 220px; }
   .status-dropdown.open { display: block; }
   .status-option { padding: 11px 16px; font-size: 13px; text-align: center; cursor: pointer; border-bottom: 1px solid #f5eefa; }
@@ -263,7 +303,7 @@ html_doc = r"""<!DOCTYPE html>
   .status-tag { display: inline-block; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px; margin-left: 6px; }
   .status-tag.status-trade { background: rgba(47,111,176,0.14); color: #2f6fb0; }
   .status-tag.status-grail { background: rgba(184,134,11,0.14); color: #b8860b; }
-  .series-box { background: var(--cream-dim); border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; }
+  .series-box { background: var(--cream-dim); border-radius: 16px; padding: 8px 12px; margin-bottom: 10px; }
   .series-label { font-size: 9.5px; letter-spacing: 0.06em; color: var(--ink-soft); font-weight: 700; }
   .series-value { font-size: 12.5px; font-weight: 700; color: #7b2fb0; }
   .pin-price { font-family: 'IBM Plex Mono', monospace; font-size: 13.5px; color: var(--red); font-weight: 700; padding: 4px 14px 12px; flex-shrink: 0; }
@@ -283,14 +323,16 @@ html_doc = r"""<!DOCTYPE html>
   .pin-id-small { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--gold); font-weight: 700; cursor: pointer; }
   .empty-msg { text-align: center; padding: 50px 20px; color: var(--ink-soft); display: none; }
   .loading-msg { text-align: center; padding: 60px 20px; color: var(--ink-soft); }
-  .list-controls-bar { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 16px; margin: 20px 0 8px; padding: 10px 18px; background: white; border-radius: 10px; border: 1px solid var(--line); font-size: 12.5px; }
+  .list-controls-bar { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 16px; margin: 20px 0 8px; padding: 10px 18px; background: white; border-radius: 999px; border: 1px solid var(--line); font-size: 12.5px; }
   .page-numbers { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
-  .page-num-btn { min-width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--line); background: white; font-size: 12.5px; cursor: pointer; }
+  .page-num-btn { min-width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: white; font-size: 12.5px; cursor: pointer; transition: transform 0.25s var(--bounce); }
+  .page-num-btn:hover { transform: scale(1.15); }
   .page-num-btn.current { background: var(--navy); color: white; border-color: var(--navy); font-weight: 700; }
   .page-num-btn.ellipsis { border: none; background: none; cursor: default; color: var(--ink-soft); }
   .page-summary { font-size: 12px; color: var(--ink-soft); text-align: center; margin-bottom: 40px; }
-  .jump-control input { width: 70px; padding: 6px; border-radius: 6px; border: 1px solid var(--line); }
-  .jump-control button { padding: 6px 12px; border-radius: 6px; border: none; background: var(--navy); color: white; cursor: pointer; }
+  .jump-control input { width: 70px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--line); }
+  .jump-control button { padding: 6px 14px; border-radius: 999px; border: none; background: var(--navy); color: white; cursor: pointer; transition: transform 0.25s var(--bounce); }
+  .jump-control button:hover { transform: scale(1.08); }
   .overlay { display: none; position: fixed; inset: 0; background: rgba(90,26,110,0.5); z-index: 50; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
   .overlay.open { display: flex; }
   .modal { background: var(--cream); max-width: 600px; width: 100%; border-radius: 16px; overflow: hidden; position: relative; }
@@ -303,6 +345,15 @@ html_doc = r"""<!DOCTYPE html>
   footer { text-align: center; padding: 28px; color: var(--ink-soft); font-size: 11.5px; }
   @media (max-width: 640px) {
     .header-collage { grid-template-columns: repeat(4, 1fr); }
+    .header-collage img:nth-child(3), .header-collage img:nth-child(5), .header-collage img:nth-child(7) {
+      display: none;
+    }
+    header { padding: 20px 16px 32px; }
+    .brand-row { margin-bottom: 18px; }
+    .hero-title { margin: 0 0 8px; }
+    .hero-sub { margin: 0 0 14px; }
+    .stat-strip { margin-top: 14px; gap: 16px; }
+    .filter-bar { margin-top: -20px; }
   }
 </style>
 </head>
@@ -322,11 +373,14 @@ html_doc = r"""<!DOCTYPE html>
   <div class="header-inner">
     <div class="brand-row">
       <div class="brand"><span class="badge-dot"></span>Pin Finder</div>
+      <button id="refreshBtn" class="refresh-btn" title="最新データに更新">⟳ 更新</button>
+      <a href="database/" class="refresh-btn" style="text-decoration:none;">📚 累積データベースを見る</a>
       <div class="brand-tag">Collector's Database</div>
     </div>
     <h1 class="hero-title">探していたピン、ここで見つかるかも。</h1>
     <p class="hero-sub">ディズニーピンを、キャラクター・パーク・シリーズ・限定数などから探せます。</p>
     <input type="text" id="search" placeholder="ピン名・キャラクター・シリーズ・Pin ID で検索…">
+    <p class="search-note">※ 検索はeBay出品タイトル(英語表記)が対象です。カタカナでは検索結果に出てこない場合があります。</p>
     <div class="stat-strip" id="statStrip"></div>
   </div>
 </header>
@@ -377,7 +431,8 @@ html_doc = r"""<!DOCTYPE html>
   <div class="list-controls-bar">
     <div class="chip-group"><div class="chip-group-label">表示件数</div>
       <select class="filter-select" id="perPage">
-        <option value="20" selected>20件</option>
+        <option value="10" selected>10件</option>
+        <option value="20">20件</option>
         <option value="40">40件</option>
         <option value="60">60件</option>
         <option value="100">100件</option>
@@ -414,7 +469,7 @@ html_doc = r"""<!DOCTYPE html>
 <script>
 let allPins = [];
 const state = { query:'', park:'All', collection:'All', edition:'All', series:'All', status:'All',
-                 color:'All', character:'All', favOnly:false, leMax:null, page:1, perPage:20,
+                 color:'All', character:'All', favOnly:false, leMax:null, page:1, perPage:10,
                  sort:'default', hiddenStatuses:new Set(['Unofficial','Not a Pin']) };
 let matchingPins = [];
 
@@ -445,11 +500,12 @@ function cardHtml(p, idx) {
   const fantasyBanner = status === 'Fantasy Pin' ? '<div class="fantasy-banner">✦ ファンタジーピン(非公式ファンメイド)✦</div>' : '';
   const seriesDisplay = (p.series || '').split(';')[0].trim();
   const entry = collection[p.pin_id] || {};
-  const rarityLabel = RARITY_LABELS_JA[rarity] || rarity;
-  const statusLabel = STATUS_LABELS_JA_JS[status] || status;
-  const parkLabel = PARK_LABELS_JA_JS[p.park] || p.park;
-  const editionLabel = EDITION_LABELS_JA_JS[editionType] || editionType;
-  const collectionLabel = COLLECTION_LABELS_JA_JS[collectionVal] || collectionVal;
+  // カード上のタグ表記は英語のまま(フィルターのプルダウンだけ日本語)
+  const rarityLabel = rarity;
+  const statusLabel = status;
+  const parkLabel = p.park;
+  const editionLabel = editionType;
+  const collectionLabel = collectionVal;
 
   return `
     <div class="pin-card" data-idx="${idx}">
@@ -743,8 +799,8 @@ function openModal(p) {
   document.getElementById('modalBody').innerHTML = `
     <div class="mono" style="font-size:12px;color:var(--gold);font-weight:700;margin-bottom:6px;">${p.pin_id}</div>
     <h2>${esc(p.title)}</h2>
-    <div class="detail-row"><span>パーク</span><span>${PARK_LABELS_JA_JS[p.park] || p.park}</span></div>
-    <div class="detail-row"><span>エディション種別</span><span>${EDITION_LABELS_JA_JS[p.edition_type] || p.edition_type || '—'}</span></div>
+    <div class="detail-row"><span>パーク</span><span>${p.park}</span></div>
+    <div class="detail-row"><span>エディション種別</span><span>${p.edition_type||'—'}</span></div>
     <div class="detail-row"><span>価格帯</span><span>$${p.min_price.toFixed(2)} – $${p.max_price.toFixed(2)}</span></div>
     <div class="detail-row"><span>平均価格</span><span>$${p.avg_price.toFixed(2)}</span></div>
     <div class="detail-row"><span>LE数</span><span>${p.le_count||'—'}</span></div>
@@ -770,6 +826,11 @@ document.getElementById('leMax').addEventListener('input', e => { state.leMax = 
 document.getElementById('sortSelect').addEventListener('change', e => { state.sort=e.target.value; state.page=1; applyFilters(); });
 document.getElementById('perPage').addEventListener('change', e => { state.perPage=parseInt(e.target.value,10); state.page=1; applyFilters(); });
 document.getElementById('favOnlyToggle').addEventListener('change', e => { state.favOnly=e.target.checked; state.page=1; applyFilters(); });
+document.getElementById('refreshBtn').addEventListener('click', () => {
+  // キャッシュを無視して強制的に最新版を再取得する
+  window.location.reload(true);
+});
+
 document.getElementById('jumpBtn').addEventListener('click', () => {
   const v = parseInt(document.getElementById('jumpPage').value,10);
   if (!isNaN(v) && v>=1) goToPage(v);

@@ -26,6 +26,12 @@ for fname in sorted(os.listdir(IMG_DIR)):
         b64 = base64.b64encode(imgf.read()).decode("ascii")
     html = html.replace(f"images/{fname}", f"data:image/jpeg;base64,{b64}")
 
+# プレビュー版限定: ページ間リンクは実際のフォルダ構造がないと機能しないため、説明表示に差し替える
+html = html.replace(
+    '<a href="database/" class="refresh-btn" style="text-decoration:none;">📚 累積データベースを見る</a>',
+    '<a href="#" onclick="alert(\'このリンクは実際にGitHub Pagesへ公開した後、正しく動作します(プレビューでは無効です)\'); return false;" class="refresh-btn" style="text-decoration:none;">📚 累積データベースを見る</a>'
+)
+
 fetch_block = """// データ読み込み
 fetch('pins_data.json')
   .then(r => r.json())

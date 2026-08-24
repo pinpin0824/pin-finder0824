@@ -14,6 +14,7 @@ eBay APIキーは環境変数(EBAY_APP_ID, EBAY_CERT_ID)から読み込む(コ�
 
 import base64
 import csv
+import datetime
 import io
 import json
 import os
@@ -62,14 +63,21 @@ SEARCH_QUERIES = [
     "Hidden Disney 2026 pin",
 ]
 
-MAX_PER_QUERY = 500
+MAX_PER_QUERY = 2000
+CATEGORY_MAX_ITEMS = 10000
 PAGE_SIZE = 200
 REQUEST_DELAY = 1.0
+
+# 複数のeBayマーケットプレイスを対象にする(米国以外の出品も拾う)
+MARKETPLACES = ["EBAY_US", "EBAY_GB", "EBAY_AU"]
+
+TAXONOMY_URL = "https://api.ebay.com/commerce/taxonomy/v1/category_tree/0/get_category_suggestions"
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 OFFICIAL_SERIES_FILE = os.path.join(DATA_DIR, "all_official_series.json")
 OUTPUT_FILE = os.path.join(DATA_DIR, "pins_data.json")
 TOP_CHARACTERS_FILE = os.path.join(DATA_DIR, "top_characters.json")
+ARCHIVE_FILE = os.path.join(DATA_DIR, "archive_data.json")
 
 
 # ============================================
@@ -90,8 +98,83 @@ def get_access_token():
     return resp.json()["access_token"]
 
 
-def search_items_paginated(token, query, max_items=500, page_size=200):
-    headers = {"Authorization": f"Bearer {token}", "X-EBAY-C-MARKETPLACE-ID": "EBAY_US"}
+def get_disney_pins_category_id(token):
+    """
+    eBay Taxonomy APIで「ディズニーピン」カテゴリの正確なIDを取得する。
+    取得できない場合はNoneを返し、呼び出し側はキーワード検索のみにフォールバックする。
+    """
+    headers = {"Authorization": f"Bearer {token}"}
+    params = {"q": "disney pin trading"}
+    try:
+        resp = requests.get(TAXONOMY_URL, headers=headers, params=params, timeout=30)
+        if resp.status_code != 200:
+            print(f"  [WARN] Taxonomy API status={resp.status_code}")
+            return None
+        data = resp.json()
+        suggestions = data.get("categorySuggestions", [])
+        for s in suggestions:
+            category = s.get("category", {})
+            name = category.get("categoryName", "")
+            cid = category.get("categoryId", "")
+            # 「Pins, Patches & Buttons」に一致するものを最優先で採用する
+            if "pin" in name.lower() and cid:
+                print(f"  [OK] カテゴリ特定: '{name}' (ID: {cid})")
+                return cid
+        # ピン専用カテゴリが見つからなければ、最初の候補を使う
+        if suggestions:
+            category = suggestions[0].get("category", {})
+            cid = category.get("categoryId", "")
+            name = category.get("categoryName", "")
+            print(f"  [OK] カテゴリ候補(先頭)を採用: '{name}' (ID: {cid})")
+            return cid
+    except requests.RequestException as e:
+        print(f"  [WARN] Taxonomy API呼び出し失敗: {e}")
+    return None
+
+
+def search_by_category(token, category_id, marketplace, max_items=10000, page_size=200):
+    """カテゴリID全体を対象に検索する(キーワードの表記ゆれに左右されない、網羅的な取得方法)"""
+    headers = {"Authorization": f"Bearer {token}", "X-EBAY-C-MARKETPLACE-ID": marketplace}
+    all_items = []
+    offset = 0
+    total_available = None
+
+    while len(all_items) < max_items:
+        remaining = max_items - len(all_items)
+        limit = min(page_size, remaining)
+        params = {"category_ids": category_id, "limit": limit, "offset": offset}
+
+        try:
+            resp = requests.get(BROWSE_URL, headers=headers, params=params, timeout=30)
+        except requests.RequestException as e:
+            print(f"    [WARN] リクエスト失敗: {e}")
+            break
+
+        if resp.status_code != 200:
+            print(f"    [WARN] status={resp.status_code} offset={offset}")
+            break
+
+        data = resp.json()
+        items = data.get("itemSummaries", [])
+        total_available = data.get("total")
+
+        if not items:
+            break
+
+        all_items.extend(items)
+        offset += limit
+        time.sleep(REQUEST_DELAY)
+
+        if total_available is not None and offset >= total_available:
+            break
+        if offset >= 10000:
+            break
+
+    return all_items
+
+
+def search_items_paginated(token, query, max_items=500, page_size=200, marketplace="EBAY_US"):
+    headers = {"Authorization": f"Bearer {token}", "X-EBAY-C-MARKETPLACE-ID": marketplace}
     all_items = []
     offset = 0
     total_available = None
@@ -144,24 +227,52 @@ def extract_fields(item, query):
     }
 
 
-def fetch_all_ebay_data():
-    print("=== eBay データ取得開始 ===")
+def fetch_all_ebay_data(full=True):
+    """
+    full=True  : 1日1回用。カテゴリ全体+複数国+多めのキーワード上限で、集められる最大量を取得する。
+    full=False : 毎時用。軽量に、USのみ・既存キーワードだけで最新の変動を素早く反映する。
+    """
+    print(f"=== eBay データ取得開始 (mode={'FULL' if full else 'LIGHT'}) ===")
     token = get_access_token()
     print("[OK] トークン取得成功")
 
     seen_ids = set()
     rows = []
-    for query in SEARCH_QUERIES:
-        print(f"--- 検索: '{query}' ---")
-        items = search_items_paginated(token, query, MAX_PER_QUERY, PAGE_SIZE)
-        new_count = 0
-        for item in items:
-            item_id = item.get("itemId", "")
-            if item_id and item_id not in seen_ids:
-                seen_ids.add(item_id)
-                rows.append(extract_fields(item, query))
-                new_count += 1
-        print(f"  -> 新規追加: {new_count}件")
+
+    marketplaces = MARKETPLACES if full else ["EBAY_US"]
+    max_per_query = MAX_PER_QUERY if full else 500
+
+    # ① カテゴリ全体を対象にした網羅的な取得(最も効果が大きい方法。フルモードのみ)
+    if full:
+        category_id = get_disney_pins_category_id(token)
+        if category_id:
+            for marketplace in marketplaces:
+                print(f"--- カテゴリ検索: category_id={category_id} marketplace={marketplace} ---")
+                items = search_by_category(token, category_id, marketplace, CATEGORY_MAX_ITEMS, PAGE_SIZE)
+                new_count = 0
+                for item in items:
+                    item_id = item.get("itemId", "")
+                    if item_id and item_id not in seen_ids:
+                        seen_ids.add(item_id)
+                        rows.append(extract_fields(item, f"category:{category_id}"))
+                        new_count += 1
+                print(f"  -> 新規追加: {new_count}件")
+        else:
+            print("[WARN] カテゴリIDが取得できなかったため、カテゴリ検索はスキップします")
+
+    # ② キーワード検索(カテゴリ検索を補完する、既存の網羅策)
+    for marketplace in marketplaces:
+        for query in SEARCH_QUERIES:
+            print(f"--- 検索: '{query}' marketplace={marketplace} ---")
+            items = search_items_paginated(token, query, max_per_query, PAGE_SIZE, marketplace)
+            new_count = 0
+            for item in items:
+                item_id = item.get("itemId", "")
+                if item_id and item_id not in seen_ids:
+                    seen_ids.add(item_id)
+                    rows.append(extract_fields(item, query))
+                    new_count += 1
+            print(f"  -> 新規追加: {new_count}件")
 
     print(f"=== 合計取得件数(重複除去後): {len(rows)}件 ===")
     return rows
@@ -435,7 +546,9 @@ def infer_edition_type(pin):
     if pin.get("le_count"):
         return "Limited Edition (LE)"
     if re.search(r"\ble\b", t) or "limited edition" in t:
-        return "Limited Edition (LE)"
+        # 「LE」という単語はあるが、具体的な限定数がタイトルに書かれていないケース。
+        # 精度を偽らないため、確定LEとは別の表記にする。
+        return "LE (Count Unknown)"
     if re.search(r"\blr\b", t) or "limited release" in t:
         return "Limited Release (LR)"
     if re.search(r"\boe\b", t) or "open edition" in t:
@@ -549,7 +662,7 @@ def infer_color(pin):
 # ============================================
 NOT_A_PIN_KW = ["pin holder", "pin display", "pin case", "pin album", "pin stand"]
 AMBIGUOUS_KW = ["pin board", "pin bag", "pin book", "trading bag"]
-CONFIRMED_PIN_EDITIONS = ["Limited Edition (LE)", "Open Edition (OE)", "Limited Release (LR)",
+CONFIRMED_PIN_EDITIONS = ["Limited Edition (LE)", "LE (Count Unknown)", "Open Edition (OE)", "Limited Release (LR)",
                           "Cast Member Trading", "Annual Passholder Exclusive", "Mystery / Chaser"]
 UNOFFICIAL_KW = ["fan made", "fan-made", "custom pin", "unofficial", "non-disney", "non disney",
                  "bootleg", "counterfeit", "homemade", "handmade", "artist made", "artist-made",
@@ -666,10 +779,82 @@ def match_official_data(pins, official_list):
 # ============================================
 # MAIN
 # ============================================
+def merge_into_archive(pins):
+    """
+    毎回上書きする「今の在庫スナップショット」とは別に、
+    一度見つけたピンは売れても消さず蓄積し続ける「データベース」を育てる。
+
+    - 既存アーカイブを読み込む
+    - 今回見つかったピンは、既存レコードがあれば情報を更新(価格帯・出品数など)
+      なければ新規追加し、そのPin IDは以後ずっと固定される
+    - 今回見つからなかった過去のピンは「is_currently_listed: false」に変わるだけで、
+      レコード自体は削除しない
+    """
+    archive = {}
+    next_id_num = 1
+
+    if os.path.exists(ARCHIVE_FILE):
+        with open(ARCHIVE_FILE, encoding="utf-8") as f:
+            existing = json.load(f)
+        for p in existing:
+            key = normalize_title(p["title"])
+            archive[key] = p
+            try:
+                num = int(p["archive_id"].replace("ARC", ""))
+                next_id_num = max(next_id_num, num + 1)
+            except (KeyError, ValueError):
+                pass
+
+    today = datetime.date.today().isoformat()
+    seen_keys = set()
+
+    for p in pins:
+        key = normalize_title(p["title"])
+        seen_keys.add(key)
+        if key in archive:
+            # 既存レコードを更新(価格帯・出品数・ステータス等は最新化)
+            existing_id = archive[key]["archive_id"]
+            first_seen = archive[key].get("first_seen_date", today)
+            p_copy = dict(p)
+            p_copy["archive_id"] = existing_id
+            p_copy["pin_id"] = existing_id
+            p_copy["first_seen_date"] = first_seen
+            p_copy["last_seen_date"] = today
+            p_copy["is_currently_listed"] = True
+            archive[key] = p_copy
+        else:
+            # 新規発見のピン。IDを新規採番して永久固定する
+            p_copy = dict(p)
+            p_copy["archive_id"] = f"ARC{next_id_num:06d}"
+            p_copy["pin_id"] = p_copy["archive_id"]
+            next_id_num += 1
+            p_copy["first_seen_date"] = today
+            p_copy["last_seen_date"] = today
+            p_copy["is_currently_listed"] = True
+            archive[key] = p_copy
+
+    # 今回見つからなかった過去のピンは「現在は出品なし」に変更するだけで残す
+    for key, p in archive.items():
+        if key not in seen_keys:
+            p["is_currently_listed"] = False
+
+    archive_list = list(archive.values())
+    with open(ARCHIVE_FILE, "w", encoding="utf-8") as f:
+        json.dump(archive_list, f, ensure_ascii=False)
+
+    currently_listed = sum(1 for p in archive_list if p.get("is_currently_listed"))
+    print(f"[OK] {ARCHIVE_FILE} 更新完了: 累計{len(archive_list)}件(うち現在出品中: {currently_listed}件)")
+    return archive_list
+
+
 def main():
+    import sys
     os.makedirs(DATA_DIR, exist_ok=True)
 
-    rows = fetch_all_ebay_data()
+    # コマンドライン引数 --light が指定されたら軽量モード(毎時用)、
+    # 指定なしならフルモード(1日1回、最大量を取得)
+    full_mode = "--light" not in sys.argv
+    rows = fetch_all_ebay_data(full=full_mode)
     pins = dedupe_and_group(rows)
     print(f"名寄せ後: {len(pins)}件")
 
@@ -696,7 +881,7 @@ def main():
         p["color_tag"] = infer_color(p)
         p["quality_status"] = classify_quality(p)
 
-    # Pin ID 採番(タイトルのアルファベット順で確定)
+    # Pin ID 採番(タイトルのアルファベット順で確定)。これは「今の在庫スナップショット」専用のID。
     sorted_pins = sorted(pins, key=lambda p: p["title"].lower())
     for i, p in enumerate(sorted_pins, start=1):
         p["pin_id"] = f"DPI{i:06d}"
@@ -707,6 +892,9 @@ def main():
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(pins, f, ensure_ascii=False)
     print(f"[OK] {OUTPUT_FILE} に {len(pins)}件を保存しました")
+
+    # 累積データベース(データベースページ用)を育てる
+    merge_into_archive(pins)
 
     # トップキャラクターリスト(A-Z順)
     counter = Counter()
