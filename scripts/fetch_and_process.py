@@ -493,33 +493,95 @@ def infer_collection(title, characters):
     return "Other"
 
 
+# 実在が確認できる代表的なLE数(PinPics等の実例に基づく)。
+# ここに含まれない、かつ25の倍数でもない中途半端な数字(LE6, LE24, LE26等)は、
+# タイトル内の無関係な数字(発売年、セット数等)の誤検出である可能性が高いため採用しない
+KNOWN_LE_VALUES = {12, 15, 20, 25, 30, 40, 50, 75, 100, 125, 150, 175, 200, 250, 300, 350, 400, 450, 500,
+                    600, 650, 700, 750, 800, 850, 900, 1000, 1200, 1250, 1500, 1750, 1850, 2000, 2250, 2500,
+                    2750, 3000, 3500, 4000, 4500, 5000, 6000, 7500, 8000, 10000, 15000, 20000, 25000}
+
+
+def is_plausible_le(val):
+    """実在するLE数のパターンに一致するか検証する(存在しない数値を誤って載せないため)"""
+    if val in KNOWN_LE_VALUES:
+        return True
+    # 一般的に流通しているLE数のほとんどは25の倍数
+    if val % 25 == 0:
+        return True
+    return False
+
+
+def is_anniversary_context(title, end_pos):
+    """
+    数字の直後が「20th」「25th」のような序数(周年記念)や、
+    「Anniversary」という単語であれば、それはLE数ではなく周年記念の数字なので除外する。
+    (例: "LE 60th Anniversary" の"60"はLE数ではなく60周年のこと)
+    """
+    following = title[end_pos:end_pos + 15].lower().strip()
+    if re.match(r"^(st|nd|rd|th)\b", following):
+        return True
+    if following.startswith("anniversary"):
+        return True
+    return False
+
+
 def extract_le_number(title):
-    m = re.search(r"le\s*\d+\s*of\s*([\d,]+)", title, re.IGNORECASE)
-    if m:
+    t_lower = title.lower()
+    # Fantasy Pin(非公式ファンメイド)は、公式の標準的なLE数とは違う
+    # 独自の小ロット数を使うことが多いため、妥当性チェックを免除する
+    fantasy_phrases = ["fantasy pin", "fantasy series pin", "custom fantasy", "unofficial fantasy",
+                        "fantasy trader pin", "faux pin"]
+    is_fantasy = any(ph in t_lower for ph in fantasy_phrases)
+
+    # 'LE ### of ###' 形式(2つ目の数字が本当の限定数)
+    m = re.search(r"\ble\s*\d+\s*of\s*([\d,]+)", title, re.IGNORECASE)
+    if m and not is_anniversary_context(title, m.end()):
         num = m.group(1).replace(",", "")
         if num.isdigit():
-            return int(num)
+            val = int(num)
+            if 20 <= val <= 50000 and (is_fantasy or is_plausible_le(val)):
+                return val
+    # 'LE ##/###' 形式(スラッシュ区切り。例: "LE 37/150" → 37番目/全150個 → 総数150を採用)
+    # これを見落とすと、個体番号(37)の方を誤って総数として扱ってしまうバグがあった
+    m = re.search(r"\ble\s*\d+\s*/\s*([\d,]+)", title, re.IGNORECASE)
+    if m and not is_anniversary_context(title, m.end()):
+        num = m.group(1).replace(",", "")
+        if num.isdigit():
+            val = int(num)
+            if 20 <= val <= 50000 and (is_fantasy or is_plausible_le(val)):
+                return val
+    # 'LE ##k' 形式(例: LE 5k → 5000。1000の倍数なので常に妥当とみなす)
     m = re.search(r"\ble\s*(\d+)\s*k\b", title, re.IGNORECASE)
     if m:
         return int(m.group(1)) * 1000
-    for p in [r"le\s*[Oo]f\s*([\d,]+)", r"le\s*([\d,]+)"]:
+    # 'LE of ###' / 'LE ###' 形式
+    # 重要: \b (単語境界)を付けないと、"Castle 2026"の"le"に反応して
+    # 2026を誤ってLE数だと誤認識してしまう(実際に発生していたバグ)
+    for p in [r"\ble\s*of\s*([\d,]+)", r"\ble\s*([\d,]+)"]:
         m = re.search(p, title, re.IGNORECASE)
         if m:
             end_pos = m.end()
             following = title[end_pos:end_pos + 3].lower()
             if following.startswith("-d") or following.startswith("d "):
                 continue
+            # 「LE 20th Anniversary」のような周年記念の数字を除外する。
+            # 20や25等は「実在するLE数」にも該当するため、妥当性チェックだけでは
+            # すり抜けてしまう。これを塞ぐための追加チェック
+            if is_anniversary_context(title, end_pos):
+                continue
             num = m.group(1).replace(",", "")
             if num.isdigit():
                 val = int(num)
-                if 20 <= val <= 50000:
+                # 実在しないパターンの数値(LE6, LE24, LE26等)は、
+                # 誤検出とみなして採用しない(Unknownのままにする)
+                if 20 <= val <= 50000 and (is_fantasy or is_plausible_le(val)):
                     return val
-    m = re.search(r"limited edition\s*(?:of)?\s*([\d,]+)", title, re.IGNORECASE)
-    if m:
+    m = re.search(r"\blimited edition\s*(?:of)?\s*([\d,]+)", title, re.IGNORECASE)
+    if m and not is_anniversary_context(title, m.end()):
         num = m.group(1).replace(",", "")
         if num.isdigit():
             val = int(num)
-            if 20 <= val <= 50000:
+            if 20 <= val <= 50000 and (is_fantasy or is_plausible_le(val)):
                 return val
     return None
 
@@ -692,7 +754,12 @@ def classify_quality(pin):
             if re.search(r"\b" + re.escape(kw) + r"\b", t):
                 return "Not a Pin"
 
-    if "fantasy pin" in t:
+    # Fantasy Pin(非公式ファンメイド)の判定。
+    # 「Fantasyland」「Fantasy Faire」等は実在の公式エリア名なので、
+    # 単独の「fantasy」ではなく、明確にファンメイドを示すフレーズのみで判定する
+    fantasy_phrases = ["fantasy pin", "fantasy series pin", "custom fantasy", "unofficial fantasy",
+                        "fantasy trader pin", "faux pin"]
+    if any(ph in t for ph in fantasy_phrases):
         return "Fantasy Pin"
 
     is_artist_series = "artist series" in t
@@ -715,7 +782,22 @@ def classify_quality(pin):
     has_park_abbr = any(p in t for p in PARK_ABBR)
     has_final_signal = any(s in t for s in FINAL_SIGNALS)
 
-    if pin.get("series") or has_le or has_strong_signal or has_park_abbr or has_final_signal:
+    # 「Likely Official」と断定するには、確信度の高いシグナルが2つ以上必要とする。
+    # 1つだけの弱いシグナルでは「Unverified」に留める方が、
+    # 誤ったデータを載せないという方針に合う
+    signal_count = sum([
+        bool(pin.get("series")),
+        has_le,
+        has_strong_signal,
+        has_park_abbr,
+        has_final_signal,
+    ])
+
+    # LE数が具体的な数値まで確認できている場合は、それ単体でも十分信頼できるシグナルとする
+    if has_le and pin.get("le_count"):
+        return "Likely Official"
+
+    if signal_count >= 2:
         return "Likely Official"
 
     return "Unverified"

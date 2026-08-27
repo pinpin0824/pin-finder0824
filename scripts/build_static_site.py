@@ -397,6 +397,7 @@ html_doc = r"""<!DOCTYPE html>
     <div class="chip-group"><div class="chip-group-label">LE数(以下)</div><input type="number" id="leMax" placeholder="例: 2500" class="le-input"></div>
   </div>
   <div class="status-toggle-row">
+    <button id="trustedOnlyBtn" class="refresh-btn" style="background:rgba(26,143,92,0.15); border-color:rgba(26,143,92,0.4); color:#1a8f5c;">✓ 確実に信頼できるものだけ表示</button>
     <div class="status-toggle-label">表示するステータス:</div>
     <label class="status-toggle"><input type="checkbox" data-toggle-status="Official" checked> 公式確認済み</label>
     <label class="status-toggle"><input type="checkbox" data-toggle-status="Likely Official" checked> 公式の可能性が高い</label>
@@ -826,6 +827,19 @@ document.getElementById('leMax').addEventListener('input', e => { state.leMax = 
 document.getElementById('sortSelect').addEventListener('change', e => { state.sort=e.target.value; state.page=1; applyFilters(); });
 document.getElementById('perPage').addEventListener('change', e => { state.perPage=parseInt(e.target.value,10); state.page=1; applyFilters(); });
 document.getElementById('favOnlyToggle').addEventListener('change', e => { state.favOnly=e.target.checked; state.page=1; applyFilters(); });
+
+document.getElementById('trustedOnlyBtn').addEventListener('click', () => {
+  // 「確実に信頼できるもの」= Official / Likely Official のみ。
+  // それ以外(未確認・ファンタジー・トレード対象外・非公式・ピン以外)は全部除外する
+  const trusted = ['Official', 'Likely Official'];
+  const all = ['Official', 'Likely Official', 'Unverified', 'Fantasy Pin', 'Non-Tradeable', 'Unofficial', 'Not a Pin'];
+  state.hiddenStatuses = new Set(all.filter(s => !trusted.includes(s)));
+  document.querySelectorAll('[data-toggle-status]').forEach(cb => {
+    cb.checked = trusted.includes(cb.dataset.toggleStatus);
+  });
+  state.page = 1;
+  applyFilters();
+});
 document.getElementById('refreshBtn').addEventListener('click', () => {
   // キャッシュを無視して強制的に最新版を再取得する
   window.location.reload(true);
