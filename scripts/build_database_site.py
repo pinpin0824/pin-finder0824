@@ -27,6 +27,10 @@ with open(os.path.join(DATA_DIR, "top_characters.json"), encoding="utf-8") as f:
 
 pins.sort(key=lambda p: p["count"], reverse=True)
 
+# 「report(報告)」ボタンで作成されるメールの宛先。
+# ★ここを、あなたが報告を受け取りたいメールアドレスに書き換えてください★
+REPORT_EMAIL = "your-email@example.com"
+
 PARKS = ["All", "D23 Expo", "Walt Disney World", "Disneyland Resort", "Disney Parks (Shared/Unspecified)",
          "Disney Store / Online Exclusive", "Tokyo Disneyland", "Disneyland Paris",
          "Hong Kong Disneyland", "Shanghai Disneyland", "Convention Exclusive (SDCC等)", "Other / Unknown"]
@@ -265,6 +269,19 @@ html_doc = r"""<!DOCTYPE html>
   .hh-ear { position: absolute; top: 0; width: 13px; height: 13px; border-radius: 50%; background: var(--cream); border: 1px solid #e2dcc8; }
   .hh-ear-l { left: 2px; } .hh-ear-r { right: 2px; }
   .rarity-badge { position: absolute; top: 10px; left: 10px; z-index: 2; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 999px; }
+  .new-badge {
+    position: absolute; top: 38px; left: 10px; z-index: 2; font-size: 10px; font-weight: 800;
+    padding: 4px 10px; border-radius: 999px; color: white;
+    background: linear-gradient(120deg, #FF8FA3, #FF6B8B);
+    box-shadow: 0 2px 6px rgba(255,107,139,0.4);
+    animation: newPulse 2s ease-in-out infinite;
+  }
+  .new-badge-soft {
+    background: linear-gradient(120deg, #7FC9B4, #5FA890);
+    box-shadow: 0 2px 6px rgba(95,168,144,0.35);
+    animation: none;
+  }
+  @keyframes newPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
   .rarity-legendary { background: #f0c419; color: #5a4300; }
   .rarity-rare { background: #c9a7f0; color: #3a1a5c; }
   .rarity-uncommon { background: #8fd4c1; color: #0b3d31; }
@@ -342,6 +359,8 @@ html_doc = r"""<!DOCTYPE html>
   .modal-close { position: absolute; top: 14px; right: 14px; width: 32px; height: 32px; border-radius: 50%; background: rgba(0,0,0,0.12); border: none; cursor: pointer; }
   .detail-row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
   .modal-link { display: block; margin-top: 18px; text-align: center; background: var(--navy); color: white; padding: 13px; border-radius: 10px; font-weight: 700; }
+  .report-btn { width: 100%; border: none; cursor: pointer; font-size: 14px; background: rgba(224,104,122,0.12); color: var(--red); margin-top: 10px; transition: transform 0.25s var(--bounce); }
+  .report-btn:hover { transform: scale(1.02); background: rgba(224,104,122,0.2); }
   footer { text-align: center; padding: 28px; color: var(--ink-soft); font-size: 11.5px; }
   @media (max-width: 640px) {
     .header-collage { grid-template-columns: repeat(4, 1fr); }
@@ -401,12 +420,13 @@ html_doc = r"""<!DOCTYPE html>
     <div class="status-toggle-label">表示するステータス:</div>
     <label class="status-toggle"><input type="checkbox" data-toggle-status="Official" checked> 公式確認済み</label>
     <label class="status-toggle"><input type="checkbox" data-toggle-status="Likely Official" checked> 公式の可能性が高い</label>
-    <label class="status-toggle"><input type="checkbox" data-toggle-status="Unverified" checked> 未確認</label>
-    <label class="status-toggle"><input type="checkbox" data-toggle-status="Fantasy Pin" checked> ファンタジーピン</label>
-    <label class="status-toggle"><input type="checkbox" data-toggle-status="Non-Tradeable" checked> トレード対象外</label>
+    <label class="status-toggle"><input type="checkbox" data-toggle-status="Unverified"> 未確認</label>
+    <label class="status-toggle"><input type="checkbox" data-toggle-status="Fantasy Pin"> ファンタジーピン</label>
+    <label class="status-toggle"><input type="checkbox" data-toggle-status="Non-Tradeable"> トレード対象外</label>
     <label class="status-toggle"><input type="checkbox" data-toggle-status="Unofficial"> 非公式</label>
     <label class="status-toggle"><input type="checkbox" data-toggle-status="Not a Pin"> ピン以外</label>
     <label class="status-toggle"><input type="checkbox" id="favOnlyToggle"> ★ お気に入りのみ表示</label>
+    <label class="status-toggle"><input type="checkbox" id="newOnlyToggle"> 🆕 新着のみ表示(発売から30日以内)</label>
   </div>
 </div>
 
@@ -424,6 +444,7 @@ html_doc = r"""<!DOCTYPE html>
       <option value="le_asc">LE数が少ない順(レア順)</option>
       <option value="rarity">レアリティ順</option>
       <option value="az">タイトル A-Z</option>
+      <option value="newest">🆕 新着順(発売日が新しい順)</option>
     </select>
   </div>
   <div id="loadingMsg" class="loading-msg">読み込み中…</div>
@@ -468,10 +489,11 @@ html_doc = r"""<!DOCTYPE html>
 </div>
 
 <script>
+const REPORT_EMAIL = "__REPORT_EMAIL__";
 let allPins = [];
 const state = { query:'', park:'All', collection:'All', edition:'All', series:'All', status:'All',
-                 color:'All', character:'All', favOnly:false, leMax:null, page:1, perPage:10,
-                 sort:'default', hiddenStatuses:new Set(['Unofficial','Not a Pin']) };
+                 color:'All', character:'All', favOnly:false, newOnly:false, leMax:null, page:1, perPage:10,
+                 sort:'default', hiddenStatuses:new Set(['Unverified','Fantasy Pin','Non-Tradeable','Unofficial','Not a Pin']) };
 let matchingPins = [];
 
 const STORAGE_KEY = 'pinRegistryCollection';
@@ -502,6 +524,15 @@ function cardHtml(p, idx) {
   const listedBadge = p.is_currently_listed
     ? '<span class="tag" style="background:rgba(92,199,184,0.2);color:#167367;">✓ 現在出品あり</span>'
     : '<span class="tag" style="background:rgba(90,90,90,0.12);color:#5b5347;">記録のみ(現在出品なし)</span>';
+  // NEW判定は発売日のみを基準にする(発見日は使わない)。
+  // 発売日が確認できない場合のみ、タイトルの年号(今年)を控えめな代替指標として使う
+  const newInfo = getNewInfo(p);
+  let newBadge = '';
+  if (newInfo.isNew && newInfo.confirmed) {
+    newBadge = '<div class="new-badge">🆕 NEW</div>';
+  } else if (newInfo.isNew) {
+    newBadge = '<div class="new-badge new-badge-soft">🆕 今年の新作</div>';
+  }
   const seriesDisplay = (p.series || '').split(';')[0].trim();
   const entry = collection[p.pin_id] || {};
   // カード上のタグ表記は英語のまま(フィルターのプルダウンだけ日本語)
@@ -515,6 +546,7 @@ function cardHtml(p, idx) {
     <div class="pin-card" data-idx="${idx}">
       <div class="hang-hole"><span class="hh-ear hh-ear-l"></span><span class="hh-ear hh-ear-r"></span><span class="hh-face"></span></div>
       <div class="rarity-badge rarity-${rarityClass}">${rarityLabel}</div>
+      ${newBadge}
       <button class="corner-fav-btn ${entry.favorite ? 'active' : ''}" data-pin-id="${p.pin_id}" data-action="favorite">${entry.favorite ? '★' : '☆'}</button>
       ${fantasyBanner}
       <div class="pin-img-frame"><img src="${esc(p.image_url)}" loading="lazy" onerror="this.style.display='none'"></div>
@@ -584,6 +616,38 @@ const COLOR_THEMES = {
   'White':{bg:'linear-gradient(180deg,#fbfbfb 0%,#fdf3df 100%)',accent:'#b0aca0'},
 };
 
+function getReleaseDateMs(p) {
+  if (p.official && p.official.notes) {
+    const m = p.official.notes.match(/発売日[:：]\s*([\d\-]+)/);
+    if (m) {
+      const d = new Date(m[1]);
+      if (!isNaN(d.getTime())) return d.getTime();
+    }
+  }
+  return null;
+}
+
+function getTitleYear(title) {
+  const m = (title || '').match(/\b(20\d{2})\b/);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+// NEW判定は「発売日」のみを基準にする(発見日は使わない)。
+// 発売日が確認できない場合のみ、タイトルの年号(今年)を控えめな代替指標として使う。
+function getNewInfo(p) {
+  const releaseMs = getReleaseDateMs(p);
+  if (releaseMs !== null) {
+    const daysSince = (Date.now() - releaseMs) / (1000*60*60*24);
+    return { isNew: daysSince >= 0 && daysSince <= 30, confirmed: true, sortValue: releaseMs };
+  }
+  const currentYear = new Date().getFullYear();
+  const titleYear = getTitleYear(p.title);
+  if (titleYear === currentYear) {
+    return { isNew: true, confirmed: false, sortValue: new Date(titleYear, 0, 1).getTime() };
+  }
+  return { isNew: false, confirmed: false, sortValue: -Infinity };
+}
+
 function applyFilters() {
   matchingPins = allPins.filter(p => {
     const t = (p.title + ' ' + p.pin_id).toLowerCase();
@@ -599,6 +663,9 @@ function applyFilters() {
     if (state.favOnly) {
       const e = collection[p.pin_id];
       if (!e || !e.favorite) return false;
+    }
+    if (state.newOnly) {
+      if (!getNewInfo(p).isNew) return false;
     }
     if (state.leMax !== null && !isNaN(state.leMax)) {
       const le = parseInt(p.le_count, 10);
@@ -617,6 +684,9 @@ function applyFilters() {
       }
       if (state.sort==='rarity') return (RARITY_ORDER[a.rarity]??9) - (RARITY_ORDER[b.rarity]??9);
       if (state.sort==='az') return a.title.localeCompare(b.title);
+      if (state.sort==='newest') {
+        return getNewInfo(b).sortValue - getNewInfo(a).sortValue;
+      }
       return 0;
     });
   } else {
@@ -788,7 +858,26 @@ function jumpToFilter(type, value) {
   document.querySelector('.filter-bar').scrollIntoView({behavior:'smooth', block:'start'});
 }
 
+function reportPin() {
+  if (!currentModalPin) return;
+  const p = currentModalPin;
+  const subject = encodeURIComponent(`ピン情報の報告: ${p.pin_id}`);
+  const body = encodeURIComponent(
+    `以下のピンについて、違和感・誤り・不適切な内容の可能性を報告します。\n\n` +
+    `Pin ID: ${p.pin_id}\n` +
+    `タイトル: ${p.title}\n` +
+    `現在のステータス: ${p.quality_status}\n` +
+    `LE数: ${p.le_count || '不明'}\n` +
+    `URL: ${p.url}\n\n` +
+    `【報告理由(自由に記入してください)】\n\n`
+  );
+  window.location.href = `mailto:${REPORT_EMAIL}?subject=${subject}&body=${body}`;
+}
+
+let currentModalPin = null;
+
 function openModal(p) {
+  currentModalPin = p;
   document.getElementById('modalImg').src = p.image_url;
   let officialHtml = '';
   if (p.official) {
@@ -815,6 +904,7 @@ function openModal(p) {
     ${officialHtml}
     <p style="font-size:11.5px; color:var(--ink-soft); margin:14px 0 4px; line-height:1.6;">※ このページは情報収集・記録用のデータベースです。表示している価格は、eBayに出品されていた当時の参考価格です。以下のリンク先は当時の出品ページのため、現在は売り切れ・削除済みの可能性が高いです。似た商品や同一デザインの商品が別のリンク・別の価格で見つかることもありますが、今表示されているページそのものが今も買えるとは限りません。</p>
     <a class="modal-link" href="${p.url}" target="_blank">当時の出品ページを見る(参考) →</a>
+    <button class="modal-link report-btn" onclick="reportPin()">🚩 このピン情報を報告する</button>
   `;
   document.getElementById('overlay').classList.add('open');
 }
@@ -832,6 +922,7 @@ document.getElementById('leMax').addEventListener('input', e => { state.leMax = 
 document.getElementById('sortSelect').addEventListener('change', e => { state.sort=e.target.value; state.page=1; applyFilters(); });
 document.getElementById('perPage').addEventListener('change', e => { state.perPage=parseInt(e.target.value,10); state.page=1; applyFilters(); });
 document.getElementById('favOnlyToggle').addEventListener('change', e => { state.favOnly=e.target.checked; state.page=1; applyFilters(); });
+document.getElementById('newOnlyToggle').addEventListener('change', e => { state.newOnly=e.target.checked; state.page=1; applyFilters(); });
 
 document.getElementById('trustedOnlyBtn').addEventListener('click', () => {
   const trusted = ['Official', 'Likely Official'];
@@ -877,9 +968,11 @@ fetch('pins_data.json')
     const totalListings = allPins.reduce((s,p)=>s+p.count,0);
     const parksCovered = new Set(allPins.map(p=>p.park)).size;
     const currentlyListed = allPins.filter(p=>p.is_currently_listed).length;
+    const newCount = allPins.filter(p => getNewInfo(p).isNew).length;
     document.getElementById('statStrip').innerHTML = `
       <div class="stat"><div class="num mono">${allPins.length.toLocaleString()}</div><div class="label">累計記録数</div></div>
       <div class="stat"><div class="num mono">${currentlyListed.toLocaleString()}</div><div class="label">現在出品中</div></div>
+      <div class="stat"><div class="num mono">🆕 ${newCount.toLocaleString()}</div><div class="label">新着(発売日基準)</div></div>
       <div class="stat"><div class="num mono">${parksCovered}</div><div class="label">Parks / Events</div></div>
     `;
     applyFilters();
@@ -901,6 +994,7 @@ html_doc = (html_doc
     .replace("__SERIES_OPTIONS__", series_options)
     .replace("__COLOR_OPTIONS__", color_options)
     .replace("__CHARACTER_OPTIONS__", character_options)
+    .replace("__REPORT_EMAIL__", REPORT_EMAIL)
     .replace('src="images/header-', 'src="../images/header-')
 )
 

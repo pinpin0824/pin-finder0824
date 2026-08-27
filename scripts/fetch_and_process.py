@@ -774,6 +774,13 @@ def classify_quality(pin):
     if "not for trade" in t or "nfte" in t or "employee only" in t:
         return "Non-Tradeable"
 
+    # Funko Pop!ピンは、Disney公式のピントレーディングプログラムとは別物で、
+    # 裏側にディズニーの公式刻印がないため、キャストメンバーとトレードできない。
+    # (\bを使い、"Mary Poppins"等を誤って検出しないよう注意している)
+    funko_patterns = [r"\bfunko\b", r"\bpop!\s*pin\b", r"\bpop\s+pin\b", r"\bfunko\s*pop\b"]
+    if any(re.search(p, t) for p in funko_patterns):
+        return "Non-Tradeable"
+
     if pin.get("official"):
         return "Official"
 
