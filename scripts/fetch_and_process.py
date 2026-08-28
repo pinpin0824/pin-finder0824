@@ -657,11 +657,14 @@ def infer_rarity(pin):
     if le:
         try:
             val = int(str(le).replace(",", ""))
-            if val <= 300:
+            # 境界線の見直し: PALM/DSSH等の多作な制作元がLE300を「標準的な量産数」として
+            # 大量に使っているため、LE300以下を全部Legendaryとすると区分が粗すぎた。
+            # より少ない数のものだけを「本当に珍しい」として区別する
+            if val <= 150:
                 return "Legendary"
-            elif val <= 1000:
+            elif val <= 500:
                 return "Rare"
-            elif val <= 3000:
+            elif val <= 1500:
                 return "Uncommon"
             else:
                 return "Common"

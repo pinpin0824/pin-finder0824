@@ -175,8 +175,47 @@ def format_character_label(c):
     return f"{ja} - {c}" if ja else c
 
 
+# 日本語名が英語名と全く同じ(=実質未翻訳)なキャラクターは、
+# 「英語名しかないもの」とみなしA-Z順の対象にする(例: BB-8, C-3PO, R2-D2)
+JA_UNTRANSLATED = {eng for eng, ja in CHARACTER_LABELS_JA.items() if eng == ja}
+
+# 漢字始まりのため、Unicode順では五十音順にならない項目の読み仮名を補正する
+JA_READING_OVERRIDES = {
+    "Beast": "やじゅう",
+    "Snow White": "しらゆきひめ",
+    "Evil Queen": "じょおう",
+    "Mad Hatter": "ぼうしや",
+    "White Rabbit": "しろうさぎ",
+}
+
+
+def kata_to_hira(s):
+    """カタカナをひらがなに変換する(五十音順の比較を正しく行うため)。
+    ひらがなとカタカナはUnicode上で別ブロックのため、変換せずに比較すると
+    「ひらがなで始まる項目が全部先頭に来る」という誤りが起きる"""
+    result = []
+    for ch in s:
+        code = ord(ch)
+        if 0x30A1 <= code <= 0x30F6:
+            result.append(chr(code - 0x60))
+        else:
+            result.append(ch)
+    return "".join(result)
+
+
+def character_sort_key(c):
+    ja = CHARACTER_LABELS_JA.get(c)
+    has_real_ja = bool(ja) and c not in JA_UNTRANSLATED
+    if has_real_ja:
+        reading = JA_READING_OVERRIDES.get(c, ja)
+        return (0, kata_to_hira(reading))
+    return (1, c)
+
+
+sorted_characters = sorted(TOP_CHARACTERS, key=character_sort_key)
+
 character_options = '<option value="All">すべて</option>' + "".join(
-    f'<option value="{c}">{format_character_label(c)}</option>' for c in TOP_CHARACTERS
+    f'<option value="{c}">{format_character_label(c)}</option>' for c in sorted_characters
 )
 
 RARITY_LABELS_MAP = [
@@ -272,8 +311,20 @@ html_doc = r"""<!DOCTYPE html>
   .filter-select, .le-input { padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: white; font-size: 13px; min-width: 140px; transition: transform 0.25s var(--bounce); }
   .filter-select:hover, .le-input:hover { transform: scale(1.03); }
   .status-toggle-row { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+  .data-disclaimer { font-size: 10.5px; color: var(--ink-soft); margin: 10px 0 0; line-height: 1.5; }
   .extra-section { max-width: 1100px; margin: 14px auto 0; padding: 0 24px; }
-  .extra-toggle-btn { margin-bottom: 10px; }
+  .extra-toggle-btn {
+    background: linear-gradient(120deg, #E8A9C9, #D888B0) !important;
+    border: none !important;
+    color: white !important;
+    padding: 12px 22px !important;
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    border-radius: 999px !important;
+    box-shadow: 0 4px 12px rgba(216,136,176,0.35);
+    margin-bottom: 12px;
+  }
+  .extra-toggle-btn:hover { transform: scale(1.04) !important; box-shadow: 0 6px 16px rgba(216,136,176,0.45); }
   .collection-progress-panel { background: white; border-radius: 20px; padding: 18px 20px; box-shadow: 0 6px 18px rgba(90,26,110,0.08); margin-bottom: 14px; }
   .progress-row { display: flex; align-items: center; gap: 12px; padding: 7px 0; font-size: 12.5px; }
   .progress-label { width: 170px; flex-shrink: 0; font-weight: 700; color: var(--ink); }
@@ -475,6 +526,7 @@ html_doc = r"""<!DOCTYPE html>
     <label class="status-toggle"><input type="checkbox" data-toggle-status="Not a Pin"> ピン以外</label>
     <label class="status-toggle"><input type="checkbox" id="favOnlyToggle"> ★ お気に入りのみ表示</label>
   </div>
+  <p class="data-disclaimer">※ レアリティ・キャラクター・トレンド等の分類は、eBay出品タイトルの表記を自動解析して判定しています。出品者の表記ミスや、まれに正しく判定できない場合があります。</p>
 </div>
 
 <div class="extra-section">
@@ -942,33 +994,51 @@ document.getElementById('toggleProgressBtn').addEventListener('click', () => {
 //  個々のカードに「NEW」と表示する用途ではなく、あくまで全体傾向を見るためのもの)
 function renderTrending() {
   const now = Date.now();
-  const counts = {};
+  const charCounts = {};
+  const colCounts = {};
   allPins.forEach(p => {
     if (!p.first_seen_date) return;
     const days = (now - new Date(p.first_seen_date).getTime()) / (1000*60*60*24);
-    if (days >= 0 && days <= 7) {
-      const key = (p.characters || '').split(';')[0].trim() || p.collection || 'その他';
-      counts[key] = (counts[key] || 0) + 1;
+    if (days < 0 || days > 7) return;
+    const primaryChar = (p.characters || '').split(';')[0].trim();
+    // キャラクターが分かるものは「キャラクター」として、
+    // 分からないものは「作品/コレクション」として、別々に集計する。
+    // (以前はこの2つを混同しており、クリックしても正しく絞り込めないバグがあった)
+    if (primaryChar) {
+      charCounts[primaryChar] = (charCounts[primaryChar] || 0) + 1;
+    } else if (p.collection) {
+      colCounts[p.collection] = (colCounts[p.collection] || 0) + 1;
     }
   });
-  const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0, 8);
+  const items = [
+    ...Object.entries(charCounts).map(([name, n]) => ({ type: 'char', name, n })),
+    ...Object.entries(colCounts).map(([name, n]) => ({ type: 'col', name, n })),
+  ].sort((a, b) => b.n - a.n).slice(0, 8);
+
   const panel = document.getElementById('trendingPanel');
-  if (sorted.length === 0) {
+  if (items.length === 0) {
     panel.innerHTML = '';
     return;
   }
   panel.innerHTML = `
-    <div class="trending-title">📈 今週のトレンド(過去7日で新しく見つかったピンが多いキャラクター)</div>
+    <div class="trending-title">📈 今週のトレンド(過去7日で新しく見つかったピンが多いキャラクター・作品)</div>
     <div class="trending-strip">
-      ${sorted.map(([name, n]) => `<div class="trending-chip" data-char="${esc(name)}">${esc(name)} ×${n}</div>`).join('')}
+      ${items.map((it, i) => `<div class="trending-chip" data-idx="${i}">${esc(it.name)} ×${it.n}</div>`).join('')}
     </div>
   `;
-  panel.querySelectorAll('.trending-chip').forEach(chip => {
+  panel.querySelectorAll('.trending-chip').forEach((chip, i) => {
     chip.addEventListener('click', () => {
-      state.character = chip.dataset.char;
-      const sel = document.getElementById('characterSelect');
-      if ([...sel.options].some(o => o.value === chip.dataset.char)) sel.value = chip.dataset.char;
+      const it = items[i];
       state.page = 1;
+      if (it.type === 'char') {
+        state.character = it.name;
+        const sel = document.getElementById('characterSelect');
+        if ([...sel.options].some(o => o.value === it.name)) sel.value = it.name;
+      } else {
+        state.collection = it.name;
+        const sel2 = document.getElementById('collectionSelect');
+        if ([...sel2.options].some(o => o.value === it.name)) sel2.value = it.name;
+      }
       applyFilters();
       document.querySelector('.filter-bar').scrollIntoView({behavior:'smooth', block:'start'});
     });
@@ -1039,17 +1109,34 @@ function reportPin() {
 let currentModalPin = null;
 
 function getSimilarPins(p, limit) {
-  const primaryChar = (p.characters || '').split(';')[0].trim();
+  const pChars = (p.characters || '').split(';').map(s => s.trim()).filter(Boolean);
+  const pSeries = (p.series || '').split(';').map(s => s.trim()).filter(Boolean);
   const others = allPins.filter(x => x.pin_id !== p.pin_id);
-  let similar = [];
-  if (primaryChar) {
-    similar = others.filter(x => (x.characters || '').includes(primaryChar));
-  }
-  if (similar.length < limit && p.collection) {
-    const bySeries = others.filter(x => x.collection === p.collection && !similar.includes(x));
-    similar = similar.concat(bySeries);
-  }
-  return similar.slice(0, limit);
+
+  const scored = others.map(x => {
+    let score = 0;
+    const xChars = (x.characters || '').split(';').map(s => s.trim()).filter(Boolean);
+    const xSeries = (x.series || '').split(';').map(s => s.trim()).filter(Boolean);
+
+    const sharedChars = pChars.filter(c => xChars.includes(c)).length;
+    score += sharedChars * 10;
+
+    const sharedSeries = pSeries.filter(s => xSeries.includes(s)).length;
+    score += sharedSeries * 6;
+
+    if (p.collection && x.collection === p.collection) score += 4;
+    if (p.park && x.park === p.park) score += 2;
+    if (p.edition_type && x.edition_type === p.edition_type) score += 1;
+    if (p.rarity && p.rarity !== 'Unknown' && x.rarity === p.rarity) score += 1;
+
+    return { pin: x, score };
+  });
+
+  return scored
+    .filter(s => s.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(s => s.pin);
 }
 
 function openModal(p) {

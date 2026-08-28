@@ -175,8 +175,49 @@ def format_character_label(c):
     return f"{ja} - {c}" if ja else c
 
 
+# 日本語名が英語名と全く同じ(=実質未翻訳)なキャラクターは、
+# 「英語名しかないもの」とみなしA-Z順の対象にする(例: BB-8, C-3PO, R2-D2)
+JA_UNTRANSLATED = {eng for eng, ja in CHARACTER_LABELS_JA.items() if eng == ja}
+
+# 漢字始まりのため、Unicode順では五十音順にならない項目の読み仮名を補正する
+JA_READING_OVERRIDES = {
+    "Beast": "やじゅう",
+    "Snow White": "しらゆきひめ",
+    "Evil Queen": "じょおう",
+    "Mad Hatter": "ぼうしや",
+    "White Rabbit": "しろうさぎ",
+}
+
+
+def kata_to_hira(s):
+    """カタカナをひらがなに変換する(五十音順の比較を正しく行うため)。
+    ひらがなとカタカナはUnicode上で別ブロックのため、変換せずに比較すると
+    「ひらがなで始まる項目が全部先頭に来る」という誤りが起きる"""
+    result = []
+    for ch in s:
+        code = ord(ch)
+        if 0x30A1 <= code <= 0x30F6:
+            result.append(chr(code - 0x60))
+        else:
+            result.append(ch)
+    return "".join(result)
+
+
+def character_sort_key(c):
+    ja = CHARACTER_LABELS_JA.get(c)
+    has_real_ja = bool(ja) and c not in JA_UNTRANSLATED
+    if has_real_ja:
+        # 日本語名がある場合は「あ」グループ、読み仮名(補正があればそれ)で五十音順に並べる
+        reading = JA_READING_OVERRIDES.get(c, ja)
+        return (0, kata_to_hira(reading))
+    # 英語名しかない場合は「い」グループとして末尾に回し、英語名でA-Z順に並べる
+    return (1, c)
+
+
+sorted_characters = sorted(TOP_CHARACTERS, key=character_sort_key)
+
 character_options = '<option value="All">すべて</option>' + "".join(
-    f'<option value="{c}">{format_character_label(c)}</option>' for c in TOP_CHARACTERS
+    f'<option value="{c}">{format_character_label(c)}</option>' for c in sorted_characters
 )
 
 RARITY_LABELS_MAP = [
@@ -272,8 +313,20 @@ html_doc = r"""<!DOCTYPE html>
   .filter-select, .le-input { padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: white; font-size: 13px; min-width: 140px; transition: transform 0.25s var(--bounce); }
   .filter-select:hover, .le-input:hover { transform: scale(1.03); }
   .status-toggle-row { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+  .data-disclaimer { font-size: 10.5px; color: var(--ink-soft); margin: 10px 0 0; line-height: 1.5; }
   .extra-section { max-width: 1100px; margin: 14px auto 0; padding: 0 24px; }
-  .extra-toggle-btn { margin-bottom: 10px; }
+  .extra-toggle-btn {
+    background: linear-gradient(120deg, #5CC7B8, #3fb8ae) !important;
+    border: none !important;
+    color: white !important;
+    padding: 12px 22px !important;
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    border-radius: 999px !important;
+    box-shadow: 0 4px 12px rgba(63,184,174,0.35);
+    margin-bottom: 12px;
+  }
+  .extra-toggle-btn:hover { transform: scale(1.04) !important; box-shadow: 0 6px 16px rgba(63,184,174,0.45); }
   .collection-progress-panel { background: white; border-radius: 20px; padding: 18px 20px; box-shadow: 0 6px 18px rgba(90,26,110,0.08); }
   .progress-row { display: flex; align-items: center; gap: 12px; padding: 7px 0; font-size: 12.5px; }
   .progress-label { width: 170px; flex-shrink: 0; font-weight: 700; color: var(--ink); }
@@ -474,6 +527,7 @@ html_doc = r"""<!DOCTYPE html>
     <label class="status-toggle"><input type="checkbox" data-toggle-status="Not a Pin"> ピン以外</label>
     <label class="status-toggle"><input type="checkbox" id="favOnlyToggle"> ★ お気に入りのみ表示</label>
   </div>
+  <p class="data-disclaimer">※ レアリティ・キャラクター等の分類は、eBay出品タイトルの表記を自動解析して判定しています。出品者の表記ミスや、まれに正しく判定できない場合があります。</p>
 </div>
 
 <div class="extra-section">
@@ -996,17 +1050,46 @@ function reportPin() {
 let currentModalPin = null;
 
 function getSimilarPins(p, limit) {
-  const primaryChar = (p.characters || '').split(';')[0].trim();
+  const pChars = (p.characters || '').split(';').map(s => s.trim()).filter(Boolean);
+  const pSeries = (p.series || '').split(';').map(s => s.trim()).filter(Boolean);
   const others = allPins.filter(x => x.pin_id !== p.pin_id);
-  let similar = [];
-  if (primaryChar) {
-    similar = others.filter(x => (x.characters || '').includes(primaryChar));
-  }
-  if (similar.length < limit && p.collection) {
-    const bySeries = others.filter(x => x.collection === p.collection && !similar.includes(x));
-    similar = similar.concat(bySeries);
-  }
-  return similar.slice(0, limit);
+
+  // 複数の観点でスコアを付け、より本当に似ているものを優先する。
+  // (以前は「最初のキャラクター名を含むか」「同じ大枠コレクションか」だけで
+  //  判定しており、精度が粗かったため改善した)
+  const scored = others.map(x => {
+    let score = 0;
+    const xChars = (x.characters || '').split(';').map(s => s.trim()).filter(Boolean);
+    const xSeries = (x.series || '').split(';').map(s => s.trim()).filter(Boolean);
+
+    // キャラクターの重なり具合(共通するキャラクターが多いほど高スコア)
+    const sharedChars = pChars.filter(c => xChars.includes(c)).length;
+    score += sharedChars * 10;
+
+    // 同じシリーズタグの重なり(D23, Hidden Mickey等)
+    const sharedSeries = pSeries.filter(s => xSeries.includes(s)).length;
+    score += sharedSeries * 6;
+
+    // 同じ作品/コレクション
+    if (p.collection && x.collection === p.collection) score += 4;
+
+    // 同じパーク
+    if (p.park && x.park === p.park) score += 2;
+
+    // 同じエディション種別(LE同士、OE同士等)
+    if (p.edition_type && x.edition_type === p.edition_type) score += 1;
+
+    // 同じレアリティ帯
+    if (p.rarity && p.rarity !== 'Unknown' && x.rarity === p.rarity) score += 1;
+
+    return { pin: x, score };
+  });
+
+  return scored
+    .filter(s => s.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(s => s.pin);
 }
 
 function openModal(p) {
