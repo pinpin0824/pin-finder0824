@@ -272,6 +272,21 @@ html_doc = r"""<!DOCTYPE html>
   .filter-select, .le-input { padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: white; font-size: 13px; min-width: 140px; transition: transform 0.25s var(--bounce); }
   .filter-select:hover, .le-input:hover { transform: scale(1.03); }
   .status-toggle-row { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+  .extra-section { max-width: 1100px; margin: 14px auto 0; padding: 0 24px; }
+  .extra-toggle-btn { margin-bottom: 10px; }
+  .collection-progress-panel { background: white; border-radius: 20px; padding: 18px 20px; box-shadow: 0 6px 18px rgba(90,26,110,0.08); }
+  .progress-row { display: flex; align-items: center; gap: 12px; padding: 7px 0; font-size: 12.5px; }
+  .progress-label { width: 170px; flex-shrink: 0; font-weight: 700; color: var(--ink); }
+  .progress-bar-outer { flex: 1; height: 10px; background: var(--cream-dim); border-radius: 999px; overflow: hidden; }
+  .progress-bar-inner { height: 100%; background: linear-gradient(90deg, var(--teal), #3fb8ae); border-radius: 999px; transition: width 0.4s var(--bounce); }
+  .progress-count { width: 90px; flex-shrink: 0; text-align: right; color: var(--ink-soft); font-family: 'IBM Plex Mono', monospace; }
+  .trending-strip { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0 4px; }
+  .trending-chip { background: linear-gradient(120deg, #FFE7A0, #F3C9DE); padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; color: #6b4a1a; cursor: pointer; transition: transform 0.25s var(--bounce); }
+  .trending-chip:hover { transform: scale(1.06); }
+  .similar-pins-row { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 6px; margin-top: 8px; }
+  .similar-pin-card { flex-shrink: 0; width: 90px; cursor: pointer; text-align: center; }
+  .similar-pin-card img { width: 90px; height: 90px; object-fit: contain; background: #f4f1e8; border-radius: 12px; padding: 6px; }
+  .similar-pin-card .spc-title { font-size: 10px; color: var(--ink-soft); margin-top: 4px; line-height: 1.3; height: 26px; overflow: hidden; }
   .status-toggle-label { font-size: 11.5px; font-weight: 700; color: var(--ink-soft); }
   .status-toggle { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--ink-soft); cursor: pointer; }
 
@@ -459,6 +474,11 @@ html_doc = r"""<!DOCTYPE html>
     <label class="status-toggle"><input type="checkbox" data-toggle-status="Not a Pin"> ピン以外</label>
     <label class="status-toggle"><input type="checkbox" id="favOnlyToggle"> ★ お気に入りのみ表示</label>
   </div>
+</div>
+
+<div class="extra-section">
+  <button id="toggleProgressBtn" class="refresh-btn extra-toggle-btn">📊 コレクション達成率を見る</button>
+  <div id="collectionProgressPanel" class="collection-progress-panel" style="display:none;"></div>
 </div>
 
 <main>
@@ -872,7 +892,45 @@ function setStatus(pid, status) {
   collection[pid].status = (collection[pid].status === status) ? '' : status;
   saveCollection(collection);
   refreshCardState(pid);
+  if (document.getElementById('collectionProgressPanel').style.display !== 'none') {
+    renderCollectionProgress();
+  }
 }
+
+function renderCollectionProgress() {
+  const byCollection = {};
+  allPins.forEach(p => {
+    const c = p.collection || 'Other';
+    if (!byCollection[c]) byCollection[c] = { total: 0, owned: 0 };
+    byCollection[c].total++;
+    const entry = collection[p.pin_id];
+    if (entry && entry.status === 'own') byCollection[c].owned++;
+  });
+  const sorted = Object.entries(byCollection)
+    .filter(([, d]) => d.total >= 5)
+    .sort((a, b) => b[1].owned - a[1].owned || b[1].total - a[1].total);
+
+  const panel = document.getElementById('collectionProgressPanel');
+  if (sorted.length === 0) {
+    panel.innerHTML = '<p style="color:var(--ink-soft); font-size:13px;">対象のコレクションがまだありません。</p>';
+    return;
+  }
+  panel.innerHTML = sorted.map(([c, d]) => {
+    const pct = Math.round((d.owned / d.total) * 100);
+    return `<div class="progress-row">
+      <div class="progress-label">${esc(c)}</div>
+      <div class="progress-bar-outer"><div class="progress-bar-inner" style="width:${pct}%"></div></div>
+      <div class="progress-count">${d.owned}/${d.total}件 (${pct}%)</div>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('toggleProgressBtn').addEventListener('click', () => {
+  const panel = document.getElementById('collectionProgressPanel');
+  const isHidden = panel.style.display === 'none';
+  panel.style.display = isHidden ? 'block' : 'none';
+  if (isHidden) renderCollectionProgress();
+});
 
 const sharedDropdown = document.getElementById('sharedStatusDropdown');
 sharedDropdown.querySelectorAll('.status-option').forEach(opt => {
@@ -937,6 +995,20 @@ function reportPin() {
 
 let currentModalPin = null;
 
+function getSimilarPins(p, limit) {
+  const primaryChar = (p.characters || '').split(';')[0].trim();
+  const others = allPins.filter(x => x.pin_id !== p.pin_id);
+  let similar = [];
+  if (primaryChar) {
+    similar = others.filter(x => (x.characters || '').includes(primaryChar));
+  }
+  if (similar.length < limit && p.collection) {
+    const bySeries = others.filter(x => x.collection === p.collection && !similar.includes(x));
+    similar = similar.concat(bySeries);
+  }
+  return similar.slice(0, limit);
+}
+
 function openModal(p) {
   currentModalPin = p;
   document.getElementById('modalImg').src = p.image_url;
@@ -951,6 +1023,19 @@ function openModal(p) {
       ${p.official.original_price ? `<div class="detail-row"><span>発売時価格</span><span>$${p.official.original_price}</span></div>` : ''}
     </div>`;
   }
+  const similarPins = getSimilarPins(p, 6);
+  const similarHtml = similarPins.length > 0 ? `
+    <div style="margin-top:20px;">
+      <div style="font-weight:700;font-size:13px;color:var(--ink-soft);margin-bottom:8px;">🔗 似ているピン</div>
+      <div class="similar-pins-row">
+        ${similarPins.map(sp => `
+          <div class="similar-pin-card" onclick='openModal(allPins.find(x=>x.pin_id===${JSON.stringify(sp.pin_id)}))'>
+            <img src="${esc(sp.image_url)}" loading="lazy" onerror="this.style.display='none'">
+            <div class="spc-title">${esc(sp.title.slice(0,40))}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>` : '';
   document.getElementById('modalBody').innerHTML = `
     <div class="mono" style="font-size:12px;color:var(--gold);font-weight:700;margin-bottom:6px;">${p.pin_id}</div>
     <h2>${esc(p.title)}</h2>
@@ -963,6 +1048,7 @@ function openModal(p) {
     <div class="detail-row"><span>シリーズ</span><span>${esc(p.series)||'—'}</span></div>
     <div class="detail-row"><span>出品件数</span><span>${p.count}</span></div>
     ${officialHtml}
+    ${similarHtml}
     <a class="modal-link" href="${p.url}" target="_blank">eBayで見る →</a>
     <button class="modal-link report-btn" onclick="reportPin()">🚩 このピン情報を報告する</button>
   `;
