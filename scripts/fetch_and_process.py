@@ -61,6 +61,28 @@ SEARCH_QUERIES = [
     "Disney mystery pin set",
     "D23 Expo 2026 pin",
     "Hidden Disney 2026 pin",
+    # データ量拡充のために追加(季節もの・シリーズもの・作品別)
+    "Disney Loungefly pin LE",
+    "Disney Epcot Food Wine Festival pin",
+    "Disney Flower Garden Festival pin",
+    "Disney Frozen pin LE",
+    "Disney Lion King pin LE",
+    "Disney Lilo Stitch pin LE",
+    "Disney Nightmare Before Christmas pin LE",
+    "Disney Alice in Wonderland pin LE",
+    "Disney Winnie the Pooh pin LE",
+    "Disney Haunted Mansion pin LE",
+    "Disney Zootopia pin LE",
+    "Disney Encanto pin LE",
+    "Disney Moana pin LE",
+    "Disney park attraction pin LE",
+    "Disney Tokyo DisneySea pin",
+    "Disney Shanghai Disneyland pin",
+    "Disney Hong Kong Disneyland pin",
+    "Disney Paris pin trading",
+    "Disney cruise line pin LE",
+    "Disney World 2026 pin new",
+    "Disneyland 2026 pin new",
 ]
 
 MAX_PER_QUERY = 2000
@@ -69,7 +91,7 @@ PAGE_SIZE = 200
 REQUEST_DELAY = 1.0
 
 # 複数のeBayマーケットプレイスを対象にする(米国以外の出品も拾う)
-MARKETPLACES = ["EBAY_US", "EBAY_GB", "EBAY_AU"]
+MARKETPLACES = ["EBAY_US", "EBAY_GB", "EBAY_AU", "EBAY_DE", "EBAY_CA"]
 
 TAXONOMY_URL = "https://api.ebay.com/commerce/taxonomy/v1/category_tree/0/get_category_suggestions"
 
@@ -241,6 +263,9 @@ def fetch_all_ebay_data(full=True):
 
     marketplaces = MARKETPLACES if full else ["EBAY_US"]
     max_per_query = MAX_PER_QUERY if full else 500
+    # 軽量モードは、拡充前からある基本キーワード(27個)だけを使い、API呼び出し回数を抑える。
+    # フルモード(1日1回)だけ、拡充した全キーワードを使う
+    queries = SEARCH_QUERIES if full else SEARCH_QUERIES[:27]
 
     # ① カテゴリ全体を対象にした網羅的な取得(最も効果が大きい方法。フルモードのみ)
     if full:
@@ -262,7 +287,7 @@ def fetch_all_ebay_data(full=True):
 
     # ② キーワード検索(カテゴリ検索を補完する、既存の網羅策)
     for marketplace in marketplaces:
-        for query in SEARCH_QUERIES:
+        for query in queries:
             print(f"--- 検索: '{query}' marketplace={marketplace} ---")
             items = search_items_paginated(token, query, max_per_query, PAGE_SIZE, marketplace)
             new_count = 0

@@ -156,6 +156,19 @@ CHARACTER_LABELS_JA = {
     "Pocahontas": "ポカホンタス", "Boo": "ブー", "Violet Parr": "バイオレット・パー",
     "Tarzan": "ターザン", "Sven": "スヴェン", "Kristoff": "クリストフ", "Prince Eric": "エリック王子",
     "Rex (Toy Story)": "レックス", "Hamm": "ハム",
+    "Alberto": "アルベルト", "BB-8": "BB-8", "Baloo": "バルー", "Big Al": "ビッグ・アル",
+    "C-3PO": "C-3PO", "Carl Fredricksen": "カール・フレドリクセン", "Crush": "クラッシュ",
+    "Dante": "ダンテ", "Dewey": "ヒューイ・デューイ・ルーイ(デューイ)", "Disgust": "イカリ",
+    "Doctor Strange": "ドクター・ストレンジ", "Dr. Facilier": "ドクター・ファシリエ",
+    "Emile": "エミール", "Emperor Zurg": "ザーグ皇帝", "Esmeralda": "エスメラルダ",
+    "Gus (Cinderella)": "ガス", "Huey": "ヒューイ", "Iago": "イアーゴ", "Jaq": "ジャック",
+    "Jiminy Cricket": "ジミニー・クリケット", "John Smith": "ジョン・スミス", "Kaa": "カー",
+    "Kronk": "クロンク", "Kuzco": "クズコ", "Louie": "ルーイ", "Meeko": "ミーコ",
+    "Miguel": "ミゲル", "Mowgli": "モーグリ", "Naveen": "ナヴィーン王子",
+    "Oogie Boogie": "ブギーマン", "Pegasus": "ペガサス", "R2-D2": "R2-D2",
+    "Randall": "ランドール", "Robin Hood": "ロビン・フッド", "Roz": "ロズ",
+    "Russell (Up)": "ラッセル", "Terk": "ターク", "Thumper": "とんすけ",
+    "Venom": "ヴェノム", "Yzma": "イズマ",
 }
 def format_character_label(c):
     ja = CHARACTER_LABELS_JA.get(c)
@@ -165,6 +178,25 @@ def format_character_label(c):
 character_options = '<option value="All">すべて</option>' + "".join(
     f'<option value="{c}">{format_character_label(c)}</option>' for c in TOP_CHARACTERS
 )
+
+RARITY_LABELS_MAP = [
+    ("All", "すべて"),
+    ("Legendary", "伝説級(LE300以下)"),
+    ("Rare", "レア(LE1000以下)"),
+    ("Uncommon", "やや珍しい(LE3000以下)"),
+    ("Common", "一般(LE3000超 / OE)"),
+    ("Unknown", "不明"),
+]
+rarity_options = "".join(f'<option value="{v}">{label}</option>' for v, label in RARITY_LABELS_MAP)
+
+RECENCY_LABELS_MAP = [
+    ("all", "すべて"),
+    ("7", "過去7日以内"),
+    ("30", "過去30日以内"),
+    ("month", "今月"),
+    ("year", "今年"),
+]
+recency_options = "".join(f'<option value="{v}">{label}</option>' for v, label in RECENCY_LABELS_MAP)
 
 html_doc = r"""<!DOCTYPE html>
 <html lang="ja">
@@ -409,14 +441,14 @@ html_doc = r"""<!DOCTYPE html>
     <div class="chip-group"><div class="chip-group-label">パーク</div><select class="filter-select" id="parkSelect">__PARK_OPTIONS__</select></div>
     <div class="chip-group"><div class="chip-group-label">作品/コレクション</div><select class="filter-select" id="collectionSelect">__COLLECTION_OPTIONS__</select></div>
     <div class="chip-group"><div class="chip-group-label">エディション種別</div><select class="filter-select" id="editionSelect">__EDITION_OPTIONS__</select></div>
-    <div class="chip-group"><div class="chip-group-label">ステータス</div><select class="filter-select" id="statusSelect">__STATUS_OPTIONS__</select></div>
     <div class="chip-group"><div class="chip-group-label">シリーズ</div><select class="filter-select" id="seriesSelect">__SERIES_OPTIONS__</select></div>
     <div class="chip-group"><div class="chip-group-label">カラー</div><select class="filter-select" id="colorSelect">__COLOR_OPTIONS__</select></div>
     <div class="chip-group"><div class="chip-group-label">キャラクター</div><select class="filter-select" id="characterSelect">__CHARACTER_OPTIONS__</select></div>
-    <div class="chip-group"><div class="chip-group-label">LE数(以下)</div><input type="number" id="leMax" placeholder="例: 2500" class="le-input"></div>
+    <div class="chip-group"><div class="chip-group-label">レアリティ(LE数目安)</div><select class="filter-select" id="raritySelect">__RARITY_OPTIONS__</select></div>
+    <div class="chip-group"><div class="chip-group-label">🆕 新着</div><select class="filter-select" id="recencySelect">__RECENCY_OPTIONS__</select></div>
   </div>
   <div class="status-toggle-row">
-    <button id="trustedOnlyBtn" class="refresh-btn" style="background:rgba(26,143,92,0.15); border-color:rgba(26,143,92,0.4); color:#1a8f5c;">✓ 確実に信頼できるものだけ表示</button>
+    <button id="resetFiltersBtn" class="refresh-btn" style="background:rgba(26,143,92,0.15); border-color:rgba(26,143,92,0.4); color:#1a8f5c;">↺ 初期設定に戻す</button>
     <div class="status-toggle-label">表示するステータス:</div>
     <label class="status-toggle"><input type="checkbox" data-toggle-status="Official" checked> 公式確認済み</label>
     <label class="status-toggle"><input type="checkbox" data-toggle-status="Likely Official" checked> 公式の可能性が高い</label>
@@ -426,7 +458,6 @@ html_doc = r"""<!DOCTYPE html>
     <label class="status-toggle"><input type="checkbox" data-toggle-status="Unofficial"> 非公式</label>
     <label class="status-toggle"><input type="checkbox" data-toggle-status="Not a Pin"> ピン以外</label>
     <label class="status-toggle"><input type="checkbox" id="favOnlyToggle"> ★ お気に入りのみ表示</label>
-    <label class="status-toggle"><input type="checkbox" id="newOnlyToggle"> 🆕 新着のみ表示(発売から30日以内)</label>
   </div>
 </div>
 
@@ -491,8 +522,8 @@ html_doc = r"""<!DOCTYPE html>
 <script>
 const REPORT_EMAIL = "__REPORT_EMAIL__";
 let allPins = [];
-const state = { query:'', park:'All', collection:'All', edition:'All', series:'All', status:'All',
-                 color:'All', character:'All', favOnly:false, newOnly:false, leMax:null, page:1, perPage:10,
+const state = { query:'', park:'All', collection:'All', edition:'All', series:'All',
+                 color:'All', character:'All', rarity:'All', recency:'all', favOnly:false, page:1, perPage:10,
                  sort:'default', hiddenStatuses:new Set(['Unverified','Fantasy Pin','Non-Tradeable','Unofficial','Not a Pin']) };
 let matchingPins = [];
 
@@ -644,6 +675,29 @@ function getNewInfo(p) {
   return { isNew: false, confirmed: false, sortValue: -Infinity };
 }
 
+// 「新着」プルダウンの範囲判定(7日/30日/今月/今年)。
+// 発売日が確認できるものはそれを使い、確認できないものはタイトルの年号を控えめな代替指標にする
+function matchesRecency(p, recency) {
+  if (recency === 'all') return true;
+  const releaseMs = getReleaseDateMs(p);
+  const now = new Date();
+
+  if (releaseMs !== null) {
+    const d = new Date(releaseMs);
+    const daysSince = (Date.now() - releaseMs) / (1000*60*60*24);
+    if (recency === '7') return daysSince >= 0 && daysSince <= 7;
+    if (recency === '30') return daysSince >= 0 && daysSince <= 30;
+    if (recency === 'month') return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    if (recency === 'year') return d.getFullYear() === now.getFullYear();
+    return false;
+  }
+  // 発売日不明の場合、年号だけは「今年」の判定にのみ使う(週・月単位の精度はないため)
+  if (recency === 'year') {
+    return getTitleYear(p.title) === now.getFullYear();
+  }
+  return false;
+}
+
 function applyFilters() {
   matchingPins = allPins.filter(p => {
     const t = (p.title + ' ' + p.pin_id).toLowerCase();
@@ -652,20 +706,14 @@ function applyFilters() {
     if (state.collection !== 'All' && p.collection !== state.collection) return false;
     if (state.edition !== 'All' && p.edition_type !== state.edition) return false;
     if (state.series !== 'All' && !(p.series||'').includes(state.series)) return false;
-    if (state.status !== 'All' && p.quality_status !== state.status) return false;
     if (state.hiddenStatuses.has(p.quality_status)) return false;
     if (state.color !== 'All' && p.color_tag !== state.color) return false;
     if (state.character !== 'All' && !(p.characters||'').toLowerCase().includes(state.character.toLowerCase())) return false;
+    if (state.rarity !== 'All' && (p.rarity || 'Unknown') !== state.rarity) return false;
+    if (!matchesRecency(p, state.recency)) return false;
     if (state.favOnly) {
       const e = collection[p.pin_id];
       if (!e || !e.favorite) return false;
-    }
-    if (state.newOnly) {
-      if (!getNewInfo(p).isNew) return false;
-    }
-    if (state.leMax !== null && !isNaN(state.leMax)) {
-      const le = parseInt(p.le_count, 10);
-      if (isNaN(le) || le > state.leMax) return false;
     }
     return true;
   });
@@ -848,8 +896,25 @@ function jumpToFilter(type, value) {
   if (type==='park') { state.park=value; document.getElementById('parkSelect').value=value; }
   else if (type==='collection') { state.collection=value; document.getElementById('collectionSelect').value=value; }
   else if (type==='edition') { state.edition=value; document.getElementById('editionSelect').value=value; }
-  else if (type==='status') { state.status=value; document.getElementById('statusSelect').value=value; }
-  else if (type==='le') { state.leMax=parseInt(value,10); document.getElementById('leMax').value=value; }
+  else if (type==='status') {
+    // ステータスタグをクリックしたら、そのステータスだけを表示するようチェックボックスを切り替える
+    const all = ['Official','Likely Official','Unverified','Fantasy Pin','Non-Tradeable','Unofficial','Not a Pin'];
+    state.hiddenStatuses = new Set(all.filter(s => s !== value));
+    document.querySelectorAll('[data-toggle-status]').forEach(cb => { cb.checked = cb.dataset.toggleStatus === value; });
+  }
+  else if (type==='le') {
+    // LEタグクリックで、そのレアリティ帯を選択する
+    const leVal = parseInt(value, 10);
+    let r = 'Unknown';
+    if (!isNaN(leVal)) {
+      if (leVal <= 300) r = 'Legendary';
+      else if (leVal <= 1000) r = 'Rare';
+      else if (leVal <= 3000) r = 'Uncommon';
+      else r = 'Common';
+    }
+    state.rarity = r;
+    document.getElementById('raritySelect').value = r;
+  }
   applyFilters();
   document.querySelector('.filter-bar').scrollIntoView({behavior:'smooth', block:'start'});
 }
@@ -910,18 +975,30 @@ document.getElementById('search').addEventListener('input', e => { state.query=e
 document.getElementById('parkSelect').addEventListener('change', e => { state.park=e.target.value; state.page=1; applyFilters(); });
 document.getElementById('collectionSelect').addEventListener('change', e => { state.collection=e.target.value; state.page=1; applyFilters(); });
 document.getElementById('editionSelect').addEventListener('change', e => { state.edition=e.target.value; state.page=1; applyFilters(); });
-document.getElementById('statusSelect').addEventListener('change', e => { state.status=e.target.value; state.page=1; applyFilters(); });
 document.getElementById('seriesSelect').addEventListener('change', e => { state.series=e.target.value; state.page=1; applyFilters(); });
 document.getElementById('characterSelect').addEventListener('change', e => { state.character=e.target.value; state.page=1; applyFilters(); });
-document.getElementById('leMax').addEventListener('input', e => { state.leMax = e.target.value===''?null:parseInt(e.target.value,10); state.page=1; applyFilters(); });
+document.getElementById('raritySelect').addEventListener('change', e => { state.rarity=e.target.value; state.page=1; applyFilters(); });
+document.getElementById('recencySelect').addEventListener('change', e => { state.recency=e.target.value; state.page=1; applyFilters(); });
 document.getElementById('sortSelect').addEventListener('change', e => { state.sort=e.target.value; state.page=1; applyFilters(); });
 document.getElementById('perPage').addEventListener('change', e => { state.perPage=parseInt(e.target.value,10); state.page=1; applyFilters(); });
 document.getElementById('favOnlyToggle').addEventListener('change', e => { state.favOnly=e.target.checked; state.page=1; applyFilters(); });
-document.getElementById('newOnlyToggle').addEventListener('change', e => { state.newOnly=e.target.checked; state.page=1; applyFilters(); });
 
-document.getElementById('trustedOnlyBtn').addEventListener('click', () => {
-  // 「確実に信頼できるもの」= Official / Likely Official のみ。
-  // それ以外(未確認・ファンタジー・トレード対象外・非公式・ピン以外)は全部除外する
+// 「初期設定に戻す」ボタン: 全てのフィルターを初期状態(公式2種類のみ表示)にリセットする
+document.getElementById('resetFiltersBtn').addEventListener('click', () => {
+  state.query = ''; document.getElementById('search').value = '';
+  state.park = 'All'; document.getElementById('parkSelect').value = 'All';
+  state.collection = 'All'; document.getElementById('collectionSelect').value = 'All';
+  state.edition = 'All'; document.getElementById('editionSelect').value = 'All';
+  state.series = 'All'; document.getElementById('seriesSelect').value = 'All';
+  state.color = 'All'; document.getElementById('colorSelect').value = 'All';
+  state.character = 'All'; document.getElementById('characterSelect').value = 'All';
+  state.rarity = 'All'; document.getElementById('raritySelect').value = 'All';
+  state.recency = 'all'; document.getElementById('recencySelect').value = 'all';
+  state.favOnly = false; document.getElementById('favOnlyToggle').checked = false;
+  state.sort = 'default'; document.getElementById('sortSelect').value = 'default';
+  document.body.style.background = '';
+  document.documentElement.style.setProperty('--gold', '#E8A9C9');
+
   const trusted = ['Official', 'Likely Official'];
   const all = ['Official', 'Likely Official', 'Unverified', 'Fantasy Pin', 'Non-Tradeable', 'Unofficial', 'Not a Pin'];
   state.hiddenStatuses = new Set(all.filter(s => !trusted.includes(s)));
@@ -988,6 +1065,8 @@ html_doc = (html_doc
     .replace("__SERIES_OPTIONS__", series_options)
     .replace("__COLOR_OPTIONS__", color_options)
     .replace("__CHARACTER_OPTIONS__", character_options)
+    .replace("__RARITY_OPTIONS__", rarity_options)
+    .replace("__RECENCY_OPTIONS__", recency_options)
     .replace("__REPORT_EMAIL__", REPORT_EMAIL)
 )
 
