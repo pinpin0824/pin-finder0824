@@ -612,7 +612,7 @@ def extract_le_number(title):
 
 
 SERIES_TAGS = ["D23", "MOG", "WDI", "Anniversary", "Cast Exclusive", "Hidden Mickey", "Imagineering",
-               "Annual Passholder", "Artist Series", "Mystery", "Chaser", "Jumbo", "Halloween",
+               "Annual Passholder", "Artist Series", "Mystery", "Super Chaser", "Chaser", "Jumbo", "Halloween",
                "Holiday", "Windows of Attraction", "Enchanted Doors", "Icons of the Galaxy",
                "Disneyland Is Your Land", "Play Along", "Eyeconic Park Views", "Eye-Conic Park Views",
                "Magical Theater", "Digitize Disney", "Premier Collection", "Game Changers",
@@ -657,11 +657,13 @@ def infer_rarity(pin):
     if le:
         try:
             val = int(str(le).replace(",", ""))
-            # 境界線の見直し: PALM/DSSH等の多作な制作元がLE300を「標準的な量産数」として
-            # 大量に使っているため、LE300以下を全部Legendaryとすると区分が粗すぎた。
-            # より少ない数のものだけを「本当に珍しい」として区別する
-            if val <= 150:
+            # Disney公式のトレーディングカードゲーム「Disney Lorcana」の
+            # レアリティ表記(Common/Uncommon/Rare/Super Rare/Legendary)に合わせた5段階区分。
+            # 内部値はCSSクラス名が壊れないようスペースなしで統一する(表示名は別途日本語化)
+            if val <= 50:
                 return "Legendary"
+            elif val <= 150:
+                return "SuperRare"
             elif val <= 500:
                 return "Rare"
             elif val <= 1500:

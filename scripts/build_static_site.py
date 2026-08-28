@@ -46,7 +46,7 @@ STATUS_LEVELS = ["All", "Official", "Likely Official", "Unverified", "Fantasy Pi
 COLOR_TAGS = ["All", "Red", "Pink", "Blue", "Aqua", "Green", "Yellow", "Orange",
               "Purple", "Brown", "Black", "White", "Multi"]
 SERIES_KEYWORDS = ["All", "D23", "MOG", "WDI", "Anniversary", "Cast Exclusive", "Hidden Mickey",
-                   "Imagineering", "Annual Passholder", "Artist Series", "Mystery", "Chaser",
+                   "Imagineering", "Annual Passholder", "Artist Series", "Mystery", "Super Chaser", "Chaser",
                    "Jumbo", "Halloween", "Holiday", "Windows of Attraction", "Enchanted Doors",
                    "Magical Theater", "Digitize Disney", "Premier Collection", "Game Changers",
                    "Play Along", "Character Carousel", "Diamond Celebration", "50th Anniversary",
@@ -222,10 +222,11 @@ character_options = '<option value="All">すべて</option>' + "".join(
 
 RARITY_LABELS_MAP = [
     ("All", "すべて"),
-    ("Legendary", "伝説級(LE300以下)"),
-    ("Rare", "レア(LE1000以下)"),
-    ("Uncommon", "やや珍しい(LE3000以下)"),
-    ("Common", "一般(LE3000超 / OE)"),
+    ("Legendary", "レジェンダリー(LE50以下)"),
+    ("SuperRare", "スーパーレア(LE51〜150)"),
+    ("Rare", "レア(LE151〜500)"),
+    ("Uncommon", "アンコモン(LE501〜1500)"),
+    ("Common", "コモン(LE1500超 / OE)"),
     ("Unknown", "不明"),
 ]
 rarity_options = "".join(f'<option value="{v}">{label}</option>' for v, label in RARITY_LABELS_MAP)
@@ -383,6 +384,7 @@ html_doc = r"""<!DOCTYPE html>
   }
   @keyframes newPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
   .rarity-legendary { background: #f0c419; color: #5a4300; }
+  .rarity-superrare { background: #c9ced6; color: #33404d; }
   .rarity-rare { background: #c9a7f0; color: #3a1a5c; }
   .rarity-uncommon { background: #8fd4c1; color: #0b3d31; }
   .rarity-common { background: #d8d2c2; color: #59523e; }
@@ -469,7 +471,7 @@ html_doc = r"""<!DOCTYPE html>
     }
     header { padding: 20px 16px 32px; }
     .brand-row { margin-bottom: 18px; }
-    .hero-title { margin: 0 0 8px; }
+    .hero-title { margin: 0 0 8px; white-space: normal; font-size: clamp(22px, 7vw, 32px); }
     .hero-sub { margin: 0 0 14px; }
     .stat-strip { margin-top: 14px; gap: 16px; }
     .filter-bar { margin-top: -20px; }
@@ -517,6 +519,7 @@ html_doc = r"""<!DOCTYPE html>
   </div>
   <div class="status-toggle-row">
     <button id="resetFiltersBtn" class="refresh-btn" style="background:rgba(26,143,92,0.15); border-color:rgba(26,143,92,0.4); color:#1a8f5c;">↺ 初期設定に戻す</button>
+    <button id="chaserShortcutBtn" class="refresh-btn" style="background:rgba(184,134,11,0.15); border-color:rgba(184,134,11,0.4); color:#b8860b;">👻 Hidden Mickey Chaser/Super Chaserを見る</button>
     <div class="status-toggle-label">表示するステータス:</div>
     <label class="status-toggle"><input type="checkbox" data-toggle-status="Official" checked> 公式確認済み</label>
     <label class="status-toggle"><input type="checkbox" data-toggle-status="Likely Official" checked> 公式の可能性が高い</label>
@@ -679,8 +682,8 @@ function cardHtml(p, idx) {
     </div>`;
 }
 
-const RARITY_ORDER = { 'Legendary':0,'Rare':1,'Uncommon':2,'Common':3,'Unknown':4 };
-const RARITY_LABELS_JA = { 'Legendary':'伝説級','Rare':'レア','Uncommon':'やや珍しい','Common':'一般','Unknown':'不明' };
+const RARITY_ORDER = { 'Legendary':0,'SuperRare':1,'Rare':2,'Uncommon':3,'Common':4,'Unknown':5 };
+const RARITY_LABELS_JA = { 'Legendary':'レジェンダリー','SuperRare':'スーパーレア','Rare':'レア','Uncommon':'アンコモン','Common':'コモン','Unknown':'不明' };
 const PARK_LABELS_JA_JS = {
   'D23 Expo':'D23 Expo','Walt Disney World':'ウォルト・ディズニー・ワールド','Disneyland Resort':'ディズニーランド・リゾート',
   'Disney Parks (Shared/Unspecified)':'ディズニーパークス(共通)','Disney Store / Online Exclusive':'ディズニーストア/オンライン限定',
@@ -1019,9 +1022,10 @@ function jumpToFilter(type, value) {
     const leVal = parseInt(value, 10);
     let r = 'Unknown';
     if (!isNaN(leVal)) {
-      if (leVal <= 300) r = 'Legendary';
-      else if (leVal <= 1000) r = 'Rare';
-      else if (leVal <= 3000) r = 'Uncommon';
+      if (leVal <= 50) r = 'Legendary';
+      else if (leVal <= 150) r = 'SuperRare';
+      else if (leVal <= 500) r = 'Rare';
+      else if (leVal <= 1500) r = 'Uncommon';
       else r = 'Common';
     }
     state.rarity = r;
@@ -1176,6 +1180,17 @@ document.getElementById('resetFiltersBtn').addEventListener('click', () => {
   });
   state.page = 1;
   applyFilters();
+});
+
+document.getElementById('chaserShortcutBtn').addEventListener('click', () => {
+  // Hidden Mickey Mystery Bag の Chaser / Super Chaser にワンクリックで絞り込む。
+  // Series(単一選択)ではChaserとSuper Chaserを同時に選べないため、
+  // 検索キーワードの部分一致(query)を使うことで両方まとめてヒットさせる
+  state.query = 'chaser';
+  document.getElementById('search').value = 'chaser';
+  state.page = 1;
+  applyFilters();
+  document.querySelector('.filter-bar').scrollIntoView({behavior:'smooth', block:'start'});
 });
 document.getElementById('refreshBtn').addEventListener('click', () => {
   // キャッシュを無視して強制的に最新版を再取得する

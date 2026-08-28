@@ -41,12 +41,15 @@ fetch('pins_data.json')
     const totalListings = allPins.reduce((s,p)=>s+p.count,0);
     const parksCovered = new Set(allPins.map(p=>p.park)).size;
     const currentlyListed = allPins.filter(p=>p.is_currently_listed).length;
+    const newCount = allPins.filter(p => getNewInfo(p).isNew).length;
     document.getElementById('statStrip').innerHTML = `
       <div class="stat"><div class="num mono">${allPins.length.toLocaleString()}</div><div class="label">累計記録数</div></div>
       <div class="stat"><div class="num mono">${currentlyListed.toLocaleString()}</div><div class="label">現在出品中</div></div>
+      <div class="stat"><div class="num mono">🆕 ${newCount.toLocaleString()}</div><div class="label">新着(発売日基準)</div></div>
       <div class="stat"><div class="num mono">${parksCovered}</div><div class="label">Parks / Events</div></div>
     `;
     applyFilters();
+    renderTrending();
   })
   .catch(err => {
     document.getElementById('loadingMsg').textContent = 'データの読み込みに失敗しました。しばらくしてから再度お試しください。';
@@ -60,12 +63,15 @@ document.getElementById('loadingMsg').style.display = 'none';
   const totalListings = allPins.reduce((s,p)=>s+p.count,0);
   const parksCovered = new Set(allPins.map(p=>p.park)).size;
   const currentlyListed = allPins.filter(p=>p.is_currently_listed).length;
+  const newCount = allPins.filter(p => getNewInfo(p).isNew).length;
   document.getElementById('statStrip').innerHTML = `
     <div class="stat"><div class="num mono">${allPins.length.toLocaleString()}</div><div class="label">累計記録数</div></div>
     <div class="stat"><div class="num mono">${currentlyListed.toLocaleString()}</div><div class="label">現在出品中</div></div>
+    <div class="stat"><div class="num mono">🆕 ${newCount.toLocaleString()}</div><div class="label">新着(発売日基準)</div></div>
     <div class="stat"><div class="num mono">${parksCovered}</div><div class="label">Parks / Events</div></div>
   `;
   applyFilters();
+  renderTrending();
 }"""
 
 if fetch_block not in html:
